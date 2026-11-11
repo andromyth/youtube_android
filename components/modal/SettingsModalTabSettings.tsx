@@ -1,0 +1,1156 @@
+import { ActivityIndicator, Platform, Pressable, Switch, TextInput, View, useColorScheme } from 'react-native'
+import { useState } from 'react'
+import { useLocales } from 'expo-localization'
+import { clsx, isAndroid, isWeb, nIf } from '@/lib/utils'
+import { useValue } from '@legendapp/state/react'
+import { settings$, ZOOM_PRESETS } from '@/states/settings'
+import { Segmented } from '../picker/Segmented'
+import { VideoMenu } from '../menu/VideoMenu'
+import { getDocumentAsync } from 'expo-document-picker'
+import { importCsv, importList, importZip } from '@/lib/import'
+import { onClearData$, ui$ } from '@/states/ui'
+import VideoAppViewModule from '@/modules/video-app-view'
+import { showToast } from '@/lib/toast'
+import { showConfirm } from '@/lib/confirm'
+import JSZip from 'jszip'
+import { exportBookmarksCsv } from '@/lib/export'
+import { applySettingsBackup, exportSettingsJson, parseSettingsBackup, settingsBackupFilename } from '@/lib/settings-transfer'
+import { t } from 'i18next'
+import { saveFile } from '@/lib/file'
+import { VideoText } from '../VideoText'
+import { VideoButton } from '../button/VideoButton'
+import MaterialIcons, { type MaterialIconsIconName } from '@react-native-vector-icons/material-icons'
+import { formatSleepTimerRemaining, useSleepTimerStatus } from '@/lib/sleep-timer'
+import { hasSleepTimerNativeSupport } from '@/lib/sleep-timer-native'
+import { hasSystemCaptionStyleSupport, openSystemCaptionSettings } from '@/lib/system-captions'
+import { mainClient } from '@/lib/main-client'
+import {
+  i18nLanguageNativeNames,
+  resolveI18nLanguageFromExpoLocale,
+  supportedI18nLanguages,
+  toBcp47Locale,
+} from '@/lib/i18n'
+import { getTranslationSupportedLanguages } from '@/lib/translation'
+import {
+  builtinUserStyleDefinitionById,
+  type BuiltinUserStyleId,
+} from '@/lib/user-styles'
+import { userStyles$ } from '@/states/user-styles'
+
+const themes = [null, 'dark', 'light'] as const
+const headerPositions = ['top', 'bottom'] as const
+const surfaceCls =
+  'overflow-hidden rounded-[24px] border border-zinc-300 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900/70'
+const sectionLabelCls = 'mb-2 px-1 text-[11px] uppercase tracking-[0.18em] text-zinc-600 dark:text-zinc-500'
+const iconWrapCls =
+  'h-10 w-10 items-center justify-center rounded-2xl border border-zinc-300 dark:border-zinc-800 bg-zinc-200 dark:bg-zinc-950'
+
+const translationLanguageNames: Record<string, string> = {
+  af: 'Afrikaans',
+  ar: 'Arabic',
+  be: 'Belarusian',
+  bg: 'Bulgarian',
+  bn: 'Bengali',
+  ca: 'Catalan',
+  cs: 'Czech',
+  cy: 'Welsh',
+  da: 'Danish',
+  de: 'German',
+  el: 'Greek',
+  en: 'English',
+  eo: 'Esperanto',
+  es: 'Spanish',
+  et: 'Estonian',
+  fa: 'Persian',
+  fi: 'Finnish',
+  fr: 'French',
+  ga: 'Irish',
+  gl: 'Galician',
+  gu: 'Gujarati',
+  he: 'Hebrew',
+  hi: 'Hindi',
+  hr: 'Croatian',
+  ht: 'Haitian Creole',
+  hu: 'Hungarian',
+  id: 'Indonesian',
+  is: 'Icelandic',
+  it: 'Italian',
+  ja: 'Japanese',
+  ka: 'Georgian',
+  kn: 'Kannada',
+  ko: 'Korean',
+  lt: 'Lithuanian',
+  lv: 'Latvian',
+  mk: 'Macedonian',
+  mr: 'Marathi',
+  ms: 'Malay',
+  mt: 'Maltese',
+  nl: 'Dutch',
+  no: 'Norwegian',
+  pl: 'Polish',
+  pt: 'Portuguese',
+  ro: 'Romanian',
+  ru: 'Russian',
+  sk: 'Slovak',
+  sl: 'Slovenian',
+  sq: 'Albanian',
+  sv: 'Swedish',
+  sw: 'Swahili',
+  ta: 'Tamil',
+  te: 'Telugu',
+  th: 'Thai',
+  tl: 'Tagalog',
+  tr: 'Turkish',
+  uk: 'Ukrainian',
+  ur: 'Urdu',
+  vi: 'Vietnamese',
+  zh: 'Chinese',
+}
+
+const translationLanguageLabel = (language: string, displayLanguage: string) => {
+  try {
+    const name = new Intl.DisplayNames([toBcp47Locale(displayLanguage)], { type: 'language' }).of(language)
+    if (name && name !== language) return name
+  } catch {
+    // Use the stable fallback below on runtimes with incomplete Intl support.
+  }
+  return translationLanguageNames[language] || language
+}
+
+// Built-in user styles live here, not on the Styles page: they are product toggles rather than
+// authoring surface. Adding a built-in style is a deliberate placement decision, so list the ids
+// explicitly instead of deriving them from the definitions.
+const distractionFreeStyleRows: { id: BuiltinUserStyleId; icon: MaterialIconsIconName }[] = [
+  // Sits directly under the "hide shorts in timeline" toggle above; the two Shorts rows pair up.
+  { id: 'hide-shorts-navbar', icon: 'menu' },
+  { id: 'hide-home-feed', icon: 'home' },
+  { id: 'hide-related-videos', icon: 'view-list' },
+  { id: 'hide-end-screens', icon: 'smart-display' },
+  { id: 'hide-mix-playlist', icon: 'playlist-play' },
+  { id: 'hide-community-posts', icon: 'forum' },
+  { id: 'hide-ask-button', icon: 'auto-awesome' },
+]
+
+const distractionFreeStyleDefinitions = distractionFreeStyleRows.map((row) => ({
+  ...builtinUserStyleDefinitionById[row.id],
+  icon: row.icon,
+}))
+
+const findSupportedTranslationLanguage = (language: string | undefined, available: string[]) => {
+  if (!language) return undefined
+  const base = language.replace('_', '-').split('-')[0].toLowerCase()
+  return available.find((candidate) => candidate.toLowerCase() === base)
+}
+
+const SettingsSection: React.FC<React.PropsWithChildren<{ label?: string }>> = ({ label, children }) => {
+  return (
+    <View>
+      {label ? <VideoText className={sectionLabelCls}>{label}</VideoText> : null}
+      {children}
+    </View>
+  )
+}
+
+const SettingsToggleRow: React.FC<{
+  label: string
+  description?: string
+  icon: MaterialIconsIconName
+  value: boolean
+  onPress: () => void
+  isLast?: boolean
+}> = ({ label, description, icon, value, onPress, isLast = false }) => {
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme !== 'light'
+  return (
+    <Pressable
+      onPress={onPress}
+      className={clsx(
+        'flex-row items-center gap-3 px-4 py-4 active:bg-zinc-200/80 dark:active:bg-zinc-800/80',
+        !isLast && 'border-b border-zinc-300 dark:border-zinc-800',
+      )}
+    >
+      <View className={iconWrapCls}>
+        <MaterialIcons name={icon} color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+      </View>
+      <View className="flex-1">
+        <VideoText className="font-medium">{label}</VideoText>
+        {nIf(
+          !!description,
+          <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">{description}</VideoText>,
+        )}
+      </View>
+      <View {...(isWeb ? { onClick: (e: any) => e.stopPropagation() } : {})}>
+        <Switch
+          value={value}
+          onValueChange={onPress}
+          trackColor={{ false: '#52525b', true: '#1d4ed8' }}
+          thumbColor={value ? '#eff6ff' : '#f4f4f5'}
+          {...Platform.select({
+            web: {
+              activeThumbColor: '#eff6ff',
+            },
+          })}
+        />
+      </View>
+    </Pressable>
+  )
+}
+
+export const SettingsActionRow: React.FC<{
+  label: string
+  description?: string
+  icon: MaterialIconsIconName
+  onPress: () => void
+  isLast?: boolean
+  loading?: boolean
+  disabled?: boolean
+}> = ({ label, description, icon, onPress, isLast = false, loading = false, disabled = false }) => {
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme !== 'light'
+  const isDisabled = disabled || loading
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      className={clsx(
+        'flex-row items-center gap-3 px-4 py-4 active:bg-zinc-200/80 dark:active:bg-zinc-800/80',
+        isDisabled && 'opacity-70',
+        !isLast && 'border-b border-zinc-300 dark:border-zinc-800',
+      )}
+    >
+      <View className={iconWrapCls}>
+        <MaterialIcons name={icon} color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+      </View>
+      <View className="flex-1">
+        <VideoText className="font-medium">{label}</VideoText>
+        {description ? (
+          <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">{description}</VideoText>
+        ) : null}
+      </View>
+      {loading ? (
+        <ActivityIndicator color={isDark ? '#d4d4d8' : '#475569'} />
+      ) : (
+        <MaterialIcons name="chevron-right" color={isDark ? '#71717a' : '#52525b'} size={20} />
+      )}
+    </Pressable>
+  )
+}
+
+const clickbaitOptions = ['default', 'hq1', 'hq2', 'hq3'] as const
+
+const clickbaitLabel = (value: (typeof clickbaitOptions)[number]) => {
+  if (value === 'default') return t('settings.clickbaitThumbnail.optionDefault')
+  return t('settings.clickbaitThumbnail.optionFrame', { n: Number(value.slice(2)) })
+}
+
+// VideoApp's own behavior. Anything that changes the YouTube page itself belongs on the YouTube
+// side of the settings index instead (see SettingsYouTubeContent).
+export const SettingsPreferencesContent = () => {
+  const settings = useValue(settings$)
+
+  return (
+    <View className="pb-4">
+      <SettingsSection label={t('settings.preferencesGeneral')}>
+        <View className={surfaceCls}>
+          <SettingsToggleRow
+            label={t('settings.restoreOnStart')}
+            icon="restore"
+            value={settings.restoreOnStart}
+            onPress={() => settings$.restoreOnStart.set(!settings.restoreOnStart)}
+          />
+          {nIf(
+            !isWeb,
+            <SettingsToggleRow
+              label={t('settings.pullToRefresh')}
+              icon="refresh"
+              value={settings.pullToRefreshEnabled}
+              onPress={() => settings$.pullToRefreshEnabled.set(!settings.pullToRefreshEnabled)}
+            />,
+          )}
+          <SettingsToggleRow
+            label={t('settings.watchHistory')}
+            icon="history"
+            value={settings.keepHistory}
+            onPress={() => settings$.keepHistory.set(!settings.keepHistory)}
+            isLast={isWeb}
+          />
+          {nIf(
+            !isWeb,
+            <SettingsToggleRow
+              label={t('settings.replaceWatchNavigation')}
+              icon="swap-horiz"
+              value={settings.replaceWatchNavigation}
+              onPress={() => settings$.replaceWatchNavigation.set(!settings.replaceWatchNavigation)}
+              isLast
+            />,
+          )}
+        </View>
+      </SettingsSection>
+
+      <View className="mt-8">
+        <SettingsSection label={t('settings.proxy.label')}>
+          <View className={surfaceCls}>
+            <SettingsToggleRow
+              label={t('settings.proxy.enabled')}
+              icon="settings-ethernet"
+              value={settings.proxyEnabled}
+              onPress={() => settings$.proxyEnabled.set(!settings.proxyEnabled)}
+              isLast={!settings.proxyEnabled}
+            />
+            {nIf(
+              settings.proxyEnabled,
+              <>
+                <View className="flex-row items-center justify-between gap-3 border-b border-zinc-300 px-4 py-4 dark:border-zinc-800">
+                  <VideoText className="font-medium">{t('settings.proxy.type')}</VideoText>
+                  <Segmented
+                    options={['HTTP', 'SOCKS']}
+                    selectedIndex={settings.proxyType === 'socks' ? 1 : 0}
+                    size={1}
+                    onChange={(index) => settings$.proxyType.set(index === 1 ? 'socks' : 'http')}
+                  />
+                </View>
+                <View className="flex-row items-center justify-between gap-3 border-b border-zinc-300 px-4 py-4 dark:border-zinc-800">
+                  <VideoText className="w-24 font-medium">{t('settings.proxy.host')}</VideoText>
+                  <TextInput
+                    className="flex-1 rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-right text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                    value={settings.proxyHost}
+                    onChangeText={(text) => settings$.proxyHost.set(text)}
+                    placeholder={t('settings.proxy.hostPlaceholder')}
+                    placeholderTextColor="#71717a"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                <View className="flex-row items-center justify-between gap-3 px-4 py-4">
+                  <VideoText className="w-24 font-medium">{t('settings.proxy.port')}</VideoText>
+                  <TextInput
+                    className="w-32 rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-right text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                    value={settings.proxyPort}
+                    onChangeText={(text) => settings$.proxyPort.set(text)}
+                    placeholder={t('settings.proxy.portPlaceholder')}
+                    placeholderTextColor="#71717a"
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                  />
+                </View>
+              </>,
+            )}
+          </View>
+        </SettingsSection>
+      </View>
+    </View>
+  )
+}
+
+// Everything that changes what the YouTube page itself shows.
+export const SettingsYouTubeContent = () => {
+  const settings = useValue(settings$)
+  const builtinStyles = useValue(userStyles$.builtins)
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme !== 'light'
+  const locales = useLocales()
+  const systemLanguage = resolveI18nLanguageFromExpoLocale(locales[0]) || 'en'
+  const effectiveLanguage = settings.language || systemLanguage
+  const translationLanguages = getTranslationSupportedLanguages()
+  const appTranslationLanguage = findSupportedTranslationLanguage(effectiveLanguage, translationLanguages)
+  const systemTranslationLanguage = findSupportedTranslationLanguage(
+    locales[0]?.languageCode ?? undefined,
+    translationLanguages,
+  )
+  const preferredTranslationLanguages = [
+    appTranslationLanguage
+      ? { language: appTranslationLanguage, metaLabel: t('settings.translation.appLanguage') }
+      : null,
+    systemTranslationLanguage && systemTranslationLanguage !== appTranslationLanguage
+      ? { language: systemTranslationLanguage, metaLabel: t('settings.translation.systemLanguage') }
+      : null,
+  ].filter((item): item is { language: string; metaLabel: string } => Boolean(item))
+  const translationLanguageMenuItems = [
+    ...preferredTranslationLanguages,
+    ...translationLanguages
+      .filter((language) => !preferredTranslationLanguages.some((item) => item.language === language))
+      .sort((a, b) =>
+        translationLanguageLabel(a, effectiveLanguage).localeCompare(
+          translationLanguageLabel(b, effectiveLanguage),
+          toBcp47Locale(effectiveLanguage),
+        ),
+      )
+      .map((language) => ({ language, metaLabel: undefined })),
+  ]
+
+  const clickbaitMenuItems = clickbaitOptions.map((option) => ({
+    label: clickbaitLabel(option),
+    handler: () => settings$.clickbaitThumbnail.set(option),
+    meta:
+      settings.clickbaitThumbnail === option ? (
+        <MaterialIcons name="check" size={18} color={isDark ? '#60a5fa' : '#1d4ed8'} />
+      ) : undefined,
+  }))
+
+  return (
+    <View className="pb-4">
+      <SettingsSection label={t('settings.preferencesDistractionFree')}>
+        <View className={surfaceCls}>
+          <SettingsToggleRow
+            label={t('settings.hideShorts')}
+            icon="movie-filter"
+            value={settings.hideShorts}
+            onPress={() => settings$.hideShorts.set(!settings.hideShorts)}
+          />
+          {distractionFreeStyleDefinitions.map((definition, index) => (
+            <SettingsToggleRow
+              key={definition.id}
+              label={t(definition.labelKey)}
+              icon={definition.icon}
+              value={Boolean(builtinStyles[definition.id]?.enabled)}
+              onPress={() => userStyles$.setBuiltinEnabled(definition.id, !builtinStyles[definition.id]?.enabled)}
+              isLast={index === distractionFreeStyleDefinitions.length - 1}
+            />
+          ))}
+        </View>
+      </SettingsSection>
+
+      <View className="mt-8">
+        <SettingsSection label={t('settings.preferencesContent')}>
+          <View className={surfaceCls}>
+            <SettingsToggleRow
+              label="Sponsor block"
+              icon="block"
+              value={settings.sponsorBlock}
+              onPress={() => settings$.sponsorBlock.set(!settings.sponsorBlock)}
+            />
+            <SettingsToggleRow
+              label={t('settings.blockAds.label')}
+              description={t('settings.blockAds.hint')}
+              icon="ad-units"
+              value={settings.blockAds}
+              onPress={() => settings$.blockAds.set(!settings.blockAds)}
+            />
+            <View className="flex-row items-center gap-3 px-4 py-4">
+              <View className={iconWrapCls}>
+                <MaterialIcons name="image" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+              </View>
+              <View className="flex-1">
+                <VideoText className="font-medium">{t('settings.clickbaitThumbnail.label')}</VideoText>
+                <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+                  {t('settings.clickbaitThumbnail.hint')}
+                </VideoText>
+              </View>
+              <VideoMenu
+                trigger={
+                  isWeb ? (
+                    <VideoButton size="1" variant="outline" onPress={() => {}}>
+                      {clickbaitLabel(settings.clickbaitThumbnail)}
+                    </VideoButton>
+                  ) : (
+                    'ellipsis'
+                  )
+                }
+                items={clickbaitMenuItems}
+              />
+            </View>
+          </View>
+        </SettingsSection>
+      </View>
+
+      <View className="mt-8">
+        <SettingsSection label={t('settings.preferencesPlayback')}>
+          <View className={surfaceCls}>
+            <SettingsToggleRow
+              label={t('settings.preferH264')}
+              icon="hd"
+              value={settings.preferH264}
+              onPress={() => settings$.preferH264.set(!settings.preferH264)}
+            />
+            {isAndroid ? (
+              <>
+                {/* The mini player is the split watch view: /watch gets a
+                    webview of its own, and leaving a video shrinks that same
+                    live page into the corner rather than reloading it into a
+                    box (see lib/split-view.ts). */}
+                <SettingsToggleRow
+                  label={t('settings.miniPlayer')}
+                  description={t('settings.miniPlayerHint')}
+                  icon="picture-in-picture-alt"
+                  value={settings.miniPlayer}
+                  onPress={() => settings$.miniPlayer.set(!settings.miniPlayer)}
+                />
+                <SettingsToggleRow
+                  label={t('settings.pictureInPicture')}
+                  description={t('settings.pictureInPictureHint')}
+                  icon="picture-in-picture"
+                  value={settings.pictureInPicture}
+                  onPress={() => settings$.pictureInPicture.set(!settings.pictureInPicture)}
+                />
+              </>
+            ) : null}
+            <SettingsToggleRow
+              label={t('settings.showOriginalVideoTitle')}
+              icon="translate"
+              value={settings.showOriginalVideoTitle}
+              onPress={() => settings$.showOriginalVideoTitle.set(!settings.showOriginalVideoTitle)}
+            />
+            <SettingsToggleRow
+              label={t('settings.showDislikes')}
+              icon="thumb-down"
+              value={settings.showDislikes}
+              onPress={() => settings$.showDislikes.set(!settings.showDislikes)}
+              isLast={!hasSystemCaptionStyleSupport()}
+            />
+            {nIf(
+              hasSystemCaptionStyleSupport(),
+              <>
+                <SettingsToggleRow
+                  label={t('settings.systemCaptionStyle.label')}
+                  icon="closed-caption"
+                  value={settings.useSystemCaptionStyle}
+                  onPress={() => settings$.useSystemCaptionStyle.set(!settings.useSystemCaptionStyle)}
+                />
+                <SettingsActionRow
+                  label={t('settings.systemCaptionStyle.openSystemSettings')}
+                  description={t('settings.systemCaptionStyle.hint')}
+                  icon="settings"
+                  onPress={() => openSystemCaptionSettings()}
+                  isLast
+                />
+              </>,
+            )}
+          </View>
+        </SettingsSection>
+      </View>
+
+      {nIf(
+        isAndroid,
+        <View className="mt-8">
+          <SettingsSection label={t('settings.zoom.label')}>
+            <View className={surfaceCls}>
+              <View className="flex-row items-center gap-3 px-4 py-4">
+                <View className={iconWrapCls}>
+                  <MaterialIcons name="zoom-in" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+                </View>
+                <View className="flex-1">
+                  <VideoText className="font-medium">{t('settings.zoom.defaultLabel')}</VideoText>
+                  <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+                    {t('settings.zoom.defaultHint')}
+                  </VideoText>
+                </View>
+                <VideoMenu
+                  trigger={
+                    <VideoButton size="1" variant="outline" onPress={() => {}}>
+                      {settings.defaultZoom}%
+                    </VideoButton>
+                  }
+                  items={ZOOM_PRESETS.map((zoom) => ({
+                    label: `${zoom}%`,
+                    handler: () => settings$.defaultZoom.set(zoom),
+                    metaLabel: settings.defaultZoom === zoom ? '✓' : undefined,
+                  }))}
+                />
+              </View>
+            </View>
+          </SettingsSection>
+        </View>,
+      )}
+
+      {nIf(
+        !isWeb,
+        <View className="mt-8">
+          <SettingsSection label={t('settings.preferencesComments')}>
+            <View className={surfaceCls}>
+              <View className="flex-row items-center justify-between gap-3 px-4 py-4">
+                <View className={iconWrapCls}>
+                  <MaterialIcons name="g-translate" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+                </View>
+                <View className="flex-1">
+                  <VideoText className="font-medium">{t('settings.translation.enable')}</VideoText>
+                  <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+                    {settings.translateComments && settings.translationTargetLanguage
+                      ? `${t('settings.translation.targetLanguage')} ${translationLanguageLabel(settings.translationTargetLanguage, effectiveLanguage)}`
+                      : t('menus.off')}
+                  </VideoText>
+                </View>
+                <VideoMenu
+                  trigger="ellipsis"
+                  items={[
+                    {
+                      label: t('menus.off'),
+                      metaLabel: settings.translateComments ? undefined : '✓',
+                      handler: () => settings$.translateComments.set(false),
+                    },
+                    { kind: 'separator', label: '', handler: () => {} },
+                    ...translationLanguageMenuItems.map(({ language, metaLabel }) => ({
+                      label: translationLanguageLabel(language, effectiveLanguage),
+                      metaLabel:
+                        settings.translateComments && settings.translationTargetLanguage === language ? '✓' : metaLabel,
+                      handler: () => settings$.assign({ translationTargetLanguage: language, translateComments: true }),
+                    })),
+                  ]}
+                />
+              </View>
+            </View>
+          </SettingsSection>
+        </View>,
+      )}
+    </View>
+  )
+}
+
+export const SettingsAppearanceContent = () => {
+  const settings = useValue(settings$)
+  const theme = settings.theme
+  // Only four of these ever fit next to the seek bar, so the hint says how many
+  // are on rather than letting the extras vanish without explanation.
+  const mediaNotificationButtonCount = [
+    settings.showMediaNotificationPrevButton,
+    settings.showMediaNotificationNextButton,
+    settings.showMediaNotificationRewindButton,
+    settings.showMediaNotificationForwardButton,
+    settings.showMediaNotificationSpeedButton,
+    settings.showMediaNotificationCloseButton,
+  ].filter(Boolean).length
+  const colorScheme = useColorScheme()
+  const isDark = colorScheme !== 'light'
+  const locales = useLocales()
+  const systemLanguage = resolveI18nLanguageFromExpoLocale(locales[0]) || 'en'
+  const effectiveLanguage = settings.language || systemLanguage
+  const isSystemLanguageSelected = settings.language == null
+  const toLanguageLabel = (code: string) =>
+    i18nLanguageNativeNames[code as keyof typeof i18nLanguageNativeNames] || code
+  const currentLanguageLabel = settings.language
+    ? toLanguageLabel(settings.language)
+    : `${t('settings.language.system')} (${toLanguageLabel(effectiveLanguage)})`
+  const languageMenuItems = [
+    {
+      label: `${t('settings.language.system')} (${toLanguageLabel(systemLanguage)})`,
+      handler: () => settings$.setLanguage(null),
+      metaLabel: isSystemLanguageSelected ? '✓' : undefined,
+    },
+    ...supportedI18nLanguages.map((language) => ({
+      label: toLanguageLabel(language),
+      handler: () => settings$.setLanguage(language),
+      metaLabel: settings.language === language ? '✓' : undefined,
+    })),
+  ]
+
+  return (
+    <View className="pb-4">
+      {nIf(
+        !isWeb,
+        <SettingsSection label={t('settings.toolbar')}>
+          <View className={surfaceCls}>
+            <View className="flex-row items-center gap-3 px-4 py-4 border-b border-zinc-300 dark:border-zinc-800">
+              <View className={iconWrapCls}>
+                <MaterialIcons name="vertical-align-bottom" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+              </View>
+              <VideoText className="flex-1 font-medium">{t('settings.headerPosition.label')}</VideoText>
+              <Segmented
+                options={[t('settings.headerPosition.top'), t('settings.headerPosition.bottom')]}
+                selectedIndex={headerPositions.indexOf(settings.headerPosition)}
+                size={1}
+                onChange={(index) => settings$.headerPosition.set(headerPositions[index])}
+              />
+            </View>
+            {nIf(
+              isAndroid,
+              <SettingsToggleRow
+                label={t('settings.doubleTapToToggleHeader')}
+                icon="touch-app"
+                value={settings.doubleTapToToggleHeader}
+                onPress={() => settings$.doubleTapToToggleHeader.set(!settings.doubleTapToToggleHeader)}
+              />,
+            )}
+            <SettingsToggleRow
+              label={t('settings.autoHideHeader')}
+              icon="visibility-off"
+              value={settings.autoHideHeader}
+              onPress={() => settings$.autoHideHeader.set(!settings.autoHideHeader)}
+            />
+            <SettingsToggleRow
+              label={t('settings.hideToolbarWhenScrolled')}
+              icon="vertical-align-top"
+              value={settings.hideToolbarWhenScrolled}
+              onPress={() => settings$.hideToolbarWhenScrolled.set(!settings.hideToolbarWhenScrolled)}
+              isLast
+            />
+          </View>
+        </SettingsSection>,
+      )}
+
+      <View className={!isWeb ? 'mt-8' : undefined}>
+        <SettingsSection label={t('settings.toolbarButtons')}>
+          <View className={surfaceCls}>
+            <SettingsToggleRow
+              label={t('settings.showLibraryButtonInHeader')}
+              icon="video-library"
+              value={settings.showLibraryButtonInHeader}
+              onPress={() => settings$.showLibraryButtonInHeader.set(!settings.showLibraryButtonInHeader)}
+            />
+            <SettingsToggleRow
+              label={t('settings.showStarButtonInHeader')}
+              icon="star-outline"
+              value={settings.showStarButtonInHeader}
+              onPress={() => settings$.showStarButtonInHeader.set(!settings.showStarButtonInHeader)}
+            />
+            <SettingsToggleRow
+              label={t('settings.showHomeButtonInHeader')}
+              icon="home"
+              value={settings.showHomeButtonInHeader}
+              onPress={() => settings$.showHomeButtonInHeader.set(!settings.showHomeButtonInHeader)}
+            />
+            <SettingsToggleRow
+              label={t('settings.channelsFeed')}
+              icon="rss-feed"
+              value={settings.feedsEnabled}
+              onPress={() => settings$.feedsEnabled.set(!settings.feedsEnabled)}
+            />
+            {nIf(
+              !isWeb,
+              <>
+                <SettingsToggleRow
+                  label={t('settings.showBackButtonInHeader')}
+                  icon="arrow-back"
+                  value={settings.showBackButtonInHeader}
+                  onPress={() => settings$.showBackButtonInHeader.set(!settings.showBackButtonInHeader)}
+                />
+                <SettingsToggleRow
+                  label={t('settings.showForwardButtonInHeader')}
+                  icon="arrow-forward"
+                  value={settings.showForwardButtonInHeader}
+                  onPress={() => settings$.showForwardButtonInHeader.set(!settings.showForwardButtonInHeader)}
+                />
+              </>,
+            )}
+            <SettingsToggleRow
+              label={t('settings.showReloadButtonInHeader')}
+              icon="refresh"
+              value={settings.showReloadButtonInHeader}
+              onPress={() => settings$.showReloadButtonInHeader.set(!settings.showReloadButtonInHeader)}
+            />
+            <SettingsToggleRow
+              label={t('settings.showHistoryButtonInHeader')}
+              icon="history"
+              value={settings.showHistoryButtonInHeader}
+              onPress={() => settings$.showHistoryButtonInHeader.set(!settings.showHistoryButtonInHeader)}
+            />
+            <SettingsToggleRow
+              label="Show playback speed control"
+              icon="speed"
+              value={settings.showPlaybackSpeedControl}
+              onPress={() => settings$.showPlaybackSpeedControl.set(!settings.showPlaybackSpeedControl)}
+            />
+            <SettingsToggleRow
+              label="Show video quality control"
+              icon="high-quality"
+              value={settings.showPlaybackQualityControl}
+              onPress={() => settings$.showPlaybackQualityControl.set(!settings.showPlaybackQualityControl)}
+              isLast={!hasSleepTimerNativeSupport()}
+            />
+            {nIf(
+              hasSleepTimerNativeSupport(),
+              <SettingsToggleRow
+                label={t('settings.showSleepTimerButtonInHeader')}
+                icon="bedtime"
+                value={settings.showSleepTimerButtonInHeader}
+                onPress={() => settings$.showSleepTimerButtonInHeader.set(!settings.showSleepTimerButtonInHeader)}
+                isLast
+              />,
+            )}
+          </View>
+        </SettingsSection>
+      </View>
+
+      {nIf(
+        isAndroid,
+        <View className="mt-8">
+          <SettingsSection label={t('settings.mediaNotificationButtons')}>
+            <View className={surfaceCls}>
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationPrevButton')}
+                icon="skip-previous"
+                value={settings.showMediaNotificationPrevButton}
+                onPress={() => settings$.showMediaNotificationPrevButton.set(!settings.showMediaNotificationPrevButton)}
+              />
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationNextButton')}
+                icon="skip-next"
+                value={settings.showMediaNotificationNextButton}
+                onPress={() => settings$.showMediaNotificationNextButton.set(!settings.showMediaNotificationNextButton)}
+              />
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationRewindButton')}
+                icon="replay-10"
+                value={settings.showMediaNotificationRewindButton}
+                onPress={() =>
+                  settings$.showMediaNotificationRewindButton.set(!settings.showMediaNotificationRewindButton)
+                }
+              />
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationForwardButton')}
+                icon="forward-30"
+                value={settings.showMediaNotificationForwardButton}
+                onPress={() =>
+                  settings$.showMediaNotificationForwardButton.set(!settings.showMediaNotificationForwardButton)
+                }
+              />
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationSpeedButton')}
+                icon="speed"
+                value={settings.showMediaNotificationSpeedButton}
+                onPress={() =>
+                  settings$.showMediaNotificationSpeedButton.set(!settings.showMediaNotificationSpeedButton)
+                }
+              />
+              <SettingsToggleRow
+                label={t('settings.showMediaNotificationCloseButton')}
+                icon="close"
+                value={settings.showMediaNotificationCloseButton}
+                onPress={() =>
+                  settings$.showMediaNotificationCloseButton.set(!settings.showMediaNotificationCloseButton)
+                }
+                isLast
+              />
+            </View>
+            <VideoText className="mt-2 px-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+              {t('settings.mediaNotificationButtonsHint', { selected: mediaNotificationButtonCount })}
+            </VideoText>
+          </SettingsSection>
+        </View>,
+      )}
+
+      {nIf(
+        isWeb,
+        <View className="mt-8">
+          <SettingsSection label={t('settings.sidebar')}>
+            <View className={surfaceCls}>
+              <SettingsToggleRow
+                label={t('settings.autoHideSidebar')}
+                icon="vertical-split"
+                value={settings.autoHideSidebar}
+                onPress={() => settings$.autoHideSidebar.set(!settings.autoHideSidebar)}
+                isLast
+              />
+            </View>
+          </SettingsSection>
+        </View>,
+      )}
+
+      <View className="mt-8">
+        <SettingsSection label={t('settings.language.label')}>
+          <View className={surfaceCls}>
+            <View className="flex-row items-center justify-between gap-3 px-4 py-4">
+              <View className={iconWrapCls}>
+                <MaterialIcons name="translate" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+              </View>
+              <View className="flex-1">
+                <VideoText className="font-medium">{t('settings.language.label')}</VideoText>
+                <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+                  {currentLanguageLabel}
+                </VideoText>
+              </View>
+              <VideoMenu
+                trigger={
+                  isWeb ? (
+                    <VideoButton size="1" variant="outline" textClassName="max-w-48 truncate" onPress={() => {}}>
+                      {currentLanguageLabel}
+                    </VideoButton>
+                  ) : (
+                    'ellipsis'
+                  )
+                }
+                items={languageMenuItems}
+              />
+            </View>
+          </View>
+        </SettingsSection>
+      </View>
+
+      <View className="mt-8">
+        <SettingsSection label={t('settings.theme.label')}>
+          <View className={surfaceCls}>
+            <View className="px-4 py-4">
+              <View className="flex-row items-start gap-3">
+                <View className={iconWrapCls}>
+                  <MaterialIcons name="palette" color={isDark ? '#d4d4d8' : '#475569'} size={18} />
+                </View>
+                <View className="flex-1">
+                  <VideoText className="font-medium">{t('settings.theme.label')}</VideoText>
+                  <VideoText className="mt-1 text-sm leading-5 text-zinc-600 dark:text-zinc-400">
+                    {t('settings.theme.hint')}
+                  </VideoText>
+                </View>
+              </View>
+            </View>
+            <View className="border-t border-zinc-300 dark:border-zinc-800 px-4 py-4">
+              <View className="items-end">
+                <Segmented
+                  options={[t('settings.theme.system'), t('settings.theme.dark'), t('settings.theme.light')]}
+                  selectedIndex={themes.indexOf(theme)}
+                  size={1}
+                  onChange={(index) => settings$.theme.set(themes[index])}
+                />
+              </View>
+            </View>
+          </View>
+        </SettingsSection>
+      </View>
+    </View>
+  )
+}
+
+export const SettingsToolsContent = () => {
+  const sleepTimerSupported = hasSleepTimerNativeSupport()
+  const { active, remainingMs } = useSleepTimerStatus(sleepTimerSupported)
+  const [updatingYtDlp, setUpdatingYtDlp] = useState(false)
+
+  const clearWebviewData = () => {
+    showConfirm('Clear webview data', 'All cookies, browsing history will be removed.', () => {
+      onClearData$.fire()
+      showToast('WebView data cleared')
+    })
+  }
+
+  const handleUpdateYtDlp = async () => {
+    setUpdatingYtDlp(true)
+    try {
+      await mainClient.updateYtDlp()
+      showToast(t('buttons.ytDlpUpdated'))
+    } catch (e: any) {
+      console.error('updateYtDlp failed', e)
+      showToast(e.message || 'Failed to update yt-dlp')
+    } finally {
+      setUpdatingYtDlp(false)
+    }
+  }
+
+  return (
+    <SettingsSection label={t('settings.tools')}>
+      <View className={surfaceCls}>
+        {sleepTimerSupported ? (
+          <SettingsActionRow
+            label={t('sleepTimer.label')}
+            description={
+              active ? t('sleepTimer.endsIn', { value: formatSleepTimerRemaining(remainingMs) }) : t('sleepTimer.off')
+            }
+            icon="bedtime"
+            onPress={() => ui$.sleepTimerModalOpen.set(true)}
+          />
+        ) : null}
+        <SettingsActionRow
+          label={t('settings.webview.clearLabel')}
+          description="Cookies and browsing state"
+          icon="delete-sweep"
+          onPress={clearWebviewData}
+        />
+        <SettingsActionRow
+          label={t('settings.injectCookie')}
+          description={t('settings.injectCookieHint')}
+          icon="vpn-key"
+          onPress={() => ui$.cookieModalOpen.set(true)}
+        />
+        <SettingsActionRow
+          label={t('settings.userAgent.title')}
+          description={t('settings.userAgent.default')}
+          icon="devices"
+          onPress={() => ui$.userAgentModalOpen.set(true)}
+        />
+        <SettingsActionRow
+          label={t('buttons.updateYtDlp')}
+          description="Download the latest version from GitHub"
+          icon="download-for-offline"
+          onPress={handleUpdateYtDlp}
+          loading={updatingYtDlp}
+          isLast
+        />
+      </View>
+    </SettingsSection>
+  )
+}
+
+export const SettingsTransferContent: React.FC<{
+  importingList: boolean
+  setImportingList: React.Dispatch<React.SetStateAction<boolean>>
+  importingTakeout: boolean
+  setImportingTakeout: React.Dispatch<React.SetStateAction<boolean>>
+}> = ({ importingList, setImportingList, importingTakeout, setImportingTakeout }) => {
+  const [importingSettings, setImportingSettings] = useState(false)
+  const isImporting = importingList || importingTakeout || importingSettings
+
+  const onClickImportList = async () => {
+    if (isImporting) {
+      return
+    }
+    // Some pickers report CSV with a non text/* mime type, so list those too.
+    const res = await getDocumentAsync({
+      copyToCacheDirectory: true,
+      type: ['text/*', 'text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel'],
+    })
+    setImportingList(true)
+    try {
+      const csv = res.assets?.[0]
+      if (csv) {
+        const response = await fetch(csv.uri)
+        const text = await response.text()
+        await importList(text)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setImportingList(false)
+    }
+  }
+
+  const onClickExportList = async () => {
+    const filename = `silTube_bookmarks_${Date.now()}.csv`
+    await saveFile(filename, exportBookmarksCsv())
+  }
+
+  const onClickExportSettings = async () => {
+    await saveFile(settingsBackupFilename(), exportSettingsJson())
+  }
+
+  const onClickImportSettings = async () => {
+    if (isImporting) {
+      return
+    }
+    // Some pickers report JSON as a generic type, so accept text/* as well.
+    const res = await getDocumentAsync({
+      copyToCacheDirectory: true,
+      type: ['application/json', 'text/*'],
+    })
+    const asset = res.assets?.[0]
+    if (!asset) {
+      return
+    }
+
+    setImportingSettings(true)
+    try {
+      const response = await fetch(asset.uri)
+      const text = await response.text()
+      const backup = parseSettingsBackup(text)
+      const enabledScripts = backup.userStyles?.customScripts.filter((script) => script.enabled).length || 0
+      const confirmationKey =
+        enabledScripts > 0 ? 'settings.importSettingsWithScriptsConfirm' : 'settings.importSettingsConfirm'
+      showConfirm(t('settings.importSettings'), t(confirmationKey, { count: enabledScripts }), () => {
+        const restored = applySettingsBackup(backup)
+        showToast(t('settings.importSettingsDone', { sections: restored.join(', ') }))
+      })
+    } catch (e) {
+      console.error(e)
+      showToast('Import failed: ' + (e as Error).message)
+    } finally {
+      setImportingSettings(false)
+    }
+  }
+
+  const onClickImportTakeout = async () => {
+    if (isImporting) {
+      return
+    }
+    const res = await getDocumentAsync({ copyToCacheDirectory: true, type: ['application/zip', 'text/*'] })
+    setImportingTakeout(true)
+    try {
+      const asset = res.assets?.[0]
+      if (asset) {
+        const isZip =
+          asset.mimeType === 'application/zip' ||
+          asset.mimeType === 'application/x-zip-compressed' ||
+          asset.name?.toLowerCase().endsWith('.zip')
+
+        if (isZip) {
+          if (Platform.OS === 'android') {
+            const files = await VideoAppViewModule.extractTakeoutCsvFiles(asset.uri)
+            let total = 0
+            for (const file of files) {
+              const response = await fetch(file.uri)
+              const text = await response.text()
+              total += await importCsv(text, file.name)
+            }
+            if (total === 0) {
+              showToast("Nothing recognized in zip — make sure it's a YouTube Takeout export")
+            }
+          } else {
+            const response = await fetch(asset.uri)
+            const data = await response.arrayBuffer()
+            const zip = new JSZip()
+            await zip.loadAsync(data)
+            await importZip(zip)
+          }
+        } else {
+          const response = await fetch(asset.uri)
+          const text = await response.text()
+          const count = await importCsv(text, asset.name)
+          if (count === 0) {
+            showToast(`Unrecognized CSV: ${asset.name}`)
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      showToast('Import failed: ' + (e as Error).message)
+    } finally {
+      setImportingTakeout(false)
+    }
+  }
+
+  return (
+    <View className="gap-6">
+      <SettingsSection label={t('buttons.import')}>
+        <View className={surfaceCls}>
+          <SettingsActionRow
+            label={t('settings.importList')}
+            description="Plain text, copied links, or a VideoApp CSV export"
+            icon="playlist-add"
+            onPress={() => {
+              void onClickImportList()
+            }}
+            loading={importingList}
+            disabled={isImporting}
+          />
+          <SettingsActionRow
+            label={t('settings.importTakeout')}
+            description="Google Takeout zip or CSV"
+            icon="archive"
+            onPress={() => {
+              void onClickImportTakeout()
+            }}
+            loading={importingTakeout}
+            disabled={isImporting}
+          />
+          <SettingsActionRow
+            label={t('settings.importSettings')}
+            description={t('settings.importSettingsDescription')}
+            icon="settings-backup-restore"
+            onPress={() => {
+              void onClickImportSettings()
+            }}
+            loading={importingSettings}
+            disabled={isImporting}
+            isLast
+          />
+        </View>
+      </SettingsSection>
+
+      <SettingsSection label={t('buttons.export')}>
+        <View className={surfaceCls}>
+          <SettingsActionRow
+            label={t('settings.exportLabel')}
+            description="Save starred links as a CSV file, folders included"
+            icon="upload-file"
+            onPress={() => {
+              void onClickExportList()
+            }}
+          />
+          <SettingsActionRow
+            label={t('settings.exportSettings')}
+            description={t('settings.exportSettingsDescription')}
+            icon="tune"
+            onPress={() => {
+              void onClickExportSettings()
+            }}
+            isLast
+          />
+        </View>
+      </SettingsSection>
+    </View>
+  )
+}
