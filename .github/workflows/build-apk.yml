@@ -2,6 +2,7 @@ name: Build TV APK
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches: [main]
 
@@ -76,6 +77,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
