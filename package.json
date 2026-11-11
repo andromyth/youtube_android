@@ -53,6 +53,7 @@
     "i18next": "^25.7.3",
     "jszip": "^3.10.1",
     "nativewind": "^4.1.23",
+    "nanoid": "^5.0.0",
     "papaparse": "^5.5.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
