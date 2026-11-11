@@ -19,6 +19,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Set up Gradle and restore build cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: install and prebuild
         run: |
           bun install --filter videoapp --no-progress
@@ -26,7 +29,7 @@ jobs:
           bun expo prebuild -p android --clean --no-install
 
       - name: build apk
-        run: ./gradlew assembleFullRelease
+        run: ./gradlew assembleFullRelease --build-cache --parallel
         working-directory: android
 
       # https://github.com/r0adkll/sign-android-release/issues/84#issuecomment-1889636075
