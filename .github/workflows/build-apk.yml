@@ -42,7 +42,7 @@ jobs:
             ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: bun install --no-progress
+        run: bun install --filter videoapp --no-progress
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
