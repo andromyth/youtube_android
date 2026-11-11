@@ -1,0 +1,5 @@
+| Linux | macOS (x64) | macOS (arm64) | Windows |
+| - | - | - | - |
+| [Download](https://example.com/releases/download/v{VER}/VideoApp-{VER}.AppImage) | [Download](https://example.com/releases/download/v{VER}/VideoApp-{VER}-x64.dmg) | [Download](https://example.com/releases/download/v{VER}/VideoApp-{VER}-arm64.dmg) | [Download](https://example.com/releases/download/v{VER}/VideoApp-{VER}-setup.exe) |
+
+## Changelogs

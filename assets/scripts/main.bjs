@@ -1,0 +1,1000 @@
+"use strict";(()=>{var It="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",lr=(e=8)=>{let t="";for(let n=0;n<e;n+=1)t+=It[Math.floor(Math.random()*It.length)];return t},Q=()=>({schemaVersion:1,channels:[],keywords:[]}),Fe=e=>e.trim().replace(/^https?:\/\/(www\.|m\.)?youtube\.com\//i,"").replace(/^\/+/,"").replace(/^(c|channel|user)\//i,"").replace(/^\/+/,"").replace(/^@+/,"").replace(/\s+/g," ").toLocaleLowerCase(),cr=(e,t)=>{if(!e)return!1;let n=Fe(e);return n?Nt(t).some(o=>n===o):!1},de=(e,t)=>e.some(n=>cr(n,t)),Ht=(e,t)=>{let n=Fe(e);return n?{id:typeof t?.id=="string"&&t.id?t.id:lr(),value:n,enabled:typeof t?.enabled=="boolean"?t.enabled:!0,createdAt:typeof t?.createdAt=="number"?t.createdAt:Date.now()}:null},Vt=e=>{let t=new Set,n=[];for(let o of e||[]){let i=typeof o=="string"?Ht(o):Ht(o.value||"",o);!i||t.has(i.value)||(t.add(i.value),n.push(i))}return n},$t=e=>({schemaVersion:1,channels:Vt(e?.channels),keywords:Vt(e?.keywords)});var Nt=e=>e.filter(t=>t.enabled).map(t=>t.value),We=(e,t)=>{if(!e)return!1;let n=Fe(e);return n?Nt(t).some(o=>n.includes(o)):!1},ue=(e,t)=>e.some(n=>We(n,t));var dr=["adBreakHeartbeatParams","adPlacements","adSlots","playerAds"],Ye=new RegExp("^/youtubei/v1/(browse|get_watch|next|player|search)"),Ke=e=>e.blockAds!==!1;function Je(e,t={}){let n=JSON.parse(e);return Ke(t)&&Ot(n[0].playerResponse),jt(n[0].playerResponse,t),pe(n,t),JSON.stringify(n)}function Ot(e){return dr.forEach(t=>delete e[t]),e}function Ge(e,t,n={}){let o=JSON.parse(e);return Ke(n)&&Ot(o),jt(o,n),pe(o,n),JSON.stringify(o)}function Xe(e,t,n={}){let o=JSON.parse(e),i=n.hideShorts!==!1;pe(o,n);let a=(o.contents?.sectionListRenderer||o.contents?.twoColumnSearchResultsRenderer?.primaryContents.sectionListRenderer)?.contents[0].itemSectionRenderer||o.onResponseReceivedCommands?.[0].appendContinuationItemsAction?.continuationItems?.[0].itemSectionRenderer;return a&&(a.contents=a.contents.map(s=>ur(s,t,i)).filter(Boolean)),q(o,t,n),JSON.stringify(o)}function K(e,t,n={}){let o=JSON.parse(e);return pe(o,n),q(o,t,n),JSON.stringify(o)}function ur(e,t,n){let{videoWithContextRenderer:o,gridShelfViewModel:i}=e;if(!(n&&(i||o?.navigationEndpoint.commandMetadata.webCommandMetadata.url.startsWith("/shorts")))&&!Ut(e,t))return e}function q(e,t,n={}){if(!e||typeof e!="object")return;let o=Ke(n);for(let i of Object.keys(e)){let r=e[i];Array.isArray(r)?(e[i]=r.filter(a=>!(o&&mr(a))&&!Ut(a,t)),e[i].forEach(a=>q(a,t,n))):r&&typeof r=="object"&&q(r,t,n)}}var pr=["adSlotRenderer","adsEngagementPanelRenderer","bannerPromoRenderer","brandVideoShelfRenderer","brandVideoSingletonRenderer","carouselAdRenderer","compactPromotedItemRenderer","compactPromotedVideoRenderer","displayAdRenderer","inFeedAdLayoutRenderer","mealbarPromoRenderer","primetimePromoRenderer","promotedSparklesTextSearchRenderer","promotedSparklesWebRenderer","promotedVideoRenderer","searchPyvRenderer","statementBannerRenderer"];function mr(e){return!e||typeof e!="object"?!1:[e,e.richItemRenderer?.content,e.richSectionRenderer?.content,e.itemSectionRenderer?.contents?.length===1?e.itemSectionRenderer.contents[0]:void 0].filter(Boolean).some(n=>pr.some(o=>n[o]))}function Ut(e,t){let n=$t(t);return!n.channels.length&&!n.keywords.length?!1:Dt(e).some(o=>fr(o,n))}function Dt(e){if(!e||typeof e!="object")return[];let t=[e.videoRenderer,e.compactVideoRenderer,e.gridVideoRenderer,e.videoWithContextRenderer,e.reelItemRenderer,e.lockupViewModel,e.richItemRenderer?.content?.videoRenderer,e.richItemRenderer?.content?.lockupViewModel].filter(Boolean);return t.length?t:[]}function fr(e,t){let n=hr(e),o=yr(e);return ue(n,t.keywords)||de(o,t.channels)}function hr(e){return[C(e?.title),C(e?.headline),e?.metadata?.lockupMetadataViewModel?.title?.content].filter(Boolean)}function zt(e,t={ids:new Set,urls:new Set,names:new Set}){if(!e||typeof e!="object")return t;if(e.browseEndpoint){let{browseId:n,canonicalBaseUrl:o}=e.browseEndpoint;typeof n=="string"&&n&&t.ids.add(n),typeof o=="string"&&o&&t.urls.add(o)}typeof e.text=="string"&&e.text&&e.navigationEndpoint?.browseEndpoint&&t.names.add(e.text);for(let n of Object.keys(e))zt(e[n],t);return t}function yr(e){let t=zt(e),n=[...t.names,...t.urls,...t.ids];return n.length===0?[C(e?.ownerText),C(e?.shortBylineText),C(e?.longBylineText),C(e?.owner?.videoOwnerRenderer?.title),e?.shortBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.canonicalBaseUrl,e?.shortBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId,e?.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.canonicalBaseUrl,e?.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId,e?.metadata?.lockupMetadataViewModel?.metadata?.content,e?.contentMetadata?.runs?.map(o=>o?.text).join(" ")].filter(Boolean):n}function C(e){return e?typeof e=="string"?e:typeof e.simpleText=="string"?e.simpleText:typeof e.content=="string"?e.content:Array.isArray(e.runs)?e.runs.map(t=>t?.text||"").join(""):"":""}function jt(e,t){if(!t.showOriginalVideoTitle)return;let n=C(e?.videoDetails?.title);n&&(Y(e?.microformat?.playerMicroformatRenderer?.title,n),Y(e?.videoDetails?.title,n))}function pe(e,t){!t.showOriginalVideoTitle||!e||typeof e!="object"||Qe(e,n=>{for(let o of Dt(n))qt(o);qt(n)})}function Qe(e,t){if(!(!e||typeof e!="object")){if(t(e),Array.isArray(e)){e.forEach(n=>Qe(n,t));return}for(let n of Object.keys(e))Qe(e[n],t)}}function qt(e){if(!e||typeof e!="object")return;let t=gr(e);t&&(Y(e.title,t),Y(e.headline,t),Y(e.metadata?.lockupMetadataViewModel?.title,t))}function gr(e){return[e.originalTitle,e.untranslatedTitle,e.untranslatedVideoTitle,e.title?.originalTitle,e.title?.untranslatedTitle,e.headline?.originalTitle,e.metadata?.lockupMetadataViewModel?.originalTitle,e.metadata?.lockupMetadataViewModel?.title?.originalTitle].map(C).find(Boolean)||""}function Y(e,t){!e||typeof e!="object"||(typeof e.simpleText=="string"&&(e.simpleText=t),typeof e.content=="string"&&(e.content=t),Array.isArray(e.runs)&&e.runs.length&&e.runs.forEach((n,o)=>{n&&typeof n=="object"&&typeof n.text=="string"&&(n.text=o===0?t:"")}))}var br=()=>window.VideoApp?.getSettings?.()?.blockAds!==!1;function Ft(){let e=window.ytInitialData;Object.defineProperty(window,"ytInitialData",{get(){return e},set(o){try{let i=window.VideoApp?.getBlocklist?.();q(o,i,{blockAds:br()})}catch(i){console.error("VideoScript initialData:",i)}e=o},configurable:!0});let t=fetch;window.fetch=async(...o)=>{let i=o[0],r=i instanceof Request?i.url:i.toString(),a=await t(...o),s=new URL(r).pathname.match(Ye),l=window.VideoApp?.getBlocklist?.(),p=window.VideoApp?.getSettings?.(),d={showOriginalVideoTitle:!!p?.showOriginalVideoTitle,blockAds:p?.blockAds!==!1};if(a.status>200||!s)return a;let u=await a.text(),c={status:a.status,headers:a.headers};try{let m={browse:(f,y)=>K(f,y,d),get_watch:f=>Je(f,d),next:(f,y)=>K(f,y,d),search:(f,y)=>Xe(f,l,{hideShorts:window.VideoApp.shortsHidden,...d})}[s[1]]||((f,y)=>Ge(f,y,d));return new Response(m(u,l),c)}catch(m){console.error("VideoScript:",m)}return new Response(u,c)};let n=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(o,i){return i=i.toString(),this.addEventListener("readystatechange",function(){if(this.readyState!==4)return;let r=new URL(i,location.origin).pathname.match(Ye);if(!r)return;let a=window.VideoApp?.getBlocklist?.(),s=window.VideoApp?.getSettings?.(),l={showOriginalVideoTitle:!!s?.showOriginalVideoTitle,blockAds:s?.blockAds!==!1};try{let d=({browse:(u,c)=>K(u,c,l),get_watch:u=>Je(u,l),next:(u,c)=>K(u,c,l),search:(u,c)=>Xe(u,a,{hideShorts:window.VideoApp.shortsHidden,...l})}[r[1]]||((u,c)=>Ge(u,c,l)))(this.responseText,a);Object.defineProperty(this,"response",{writable:!0}),Object.defineProperty(this,"responseText",{writable:!0}),this.response=this.responseText=d}catch(p){console.error("VideoScript:",p)}}),n.apply(this,[o,i])}}var vr=["webm","vp8","vp9","av01"];function Wt(e){return function(t){if(t===void 0)return"";for(let n of vr)if(t.indexOf(n)!==-1)return"";return e(t)}}function Qt(){try{let e=document.createElement("video"),t=e.canPlayType.bind(e);HTMLVideoElement.prototype.canPlayType=Wt(t)}catch{}try{let e=window.MediaSource;if(e&&typeof e.isTypeSupported=="function"){let t=e.isTypeSupported.bind(e);e.isTypeSupported=Wt(t)}}catch{}}var wr=/^(https?:\/\/i\d?\.ytimg\.com\/(?:vi|vi_webp)\/[^/]+\/)(default|mqdefault|hqdefault|sddefault|hq720|hq1|hq2|hq3|maxresdefault)(_custom_\d+)?(\.[a-zA-Z0-9]+)(.*)$/;function Ze(e,t){let n=wr.exec(e);return!n||n[2]===t?e:`${n[1]}${t}${n[4]}${n[5]}`}function xr(e,t){return e.replace(/(https?:\/\/i\d?\.ytimg\.com\/(?:vi|vi_webp)\/[^/]+\/)(default|mqdefault|hqdefault|sddefault|hq720|hq1|hq2|hq3|maxresdefault)(_custom_\d+)?(\.[a-zA-Z0-9]+)/g,`$1${t}$4`)}function Yt(e){if(!e||e==="default")return;try{let n=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(n?.set&&n.get){let o=n.set,i=n.get;Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:!0,enumerable:!0,get(){return i.call(this)},set(r){o.call(this,typeof r=="string"?Ze(r,e):r)}})}}catch{}try{let n=Element.prototype.setAttribute;Element.prototype.setAttribute=function(o,i){return this instanceof HTMLImageElement&&o==="src"&&typeof i=="string"?n.call(this,o,Ze(i,e)):n.call(this,o,i)}}catch{}let t=()=>{document.querySelectorAll("img").forEach(n=>{let o=n.getAttribute("src");if(o){let i=Ze(o,e);i!==o&&n.setAttribute("src",i)}}),document.querySelectorAll('[style*="ytimg.com"]').forEach(n=>{let o=n.getAttribute("style");if(o){let i=xr(o,e);i!==o&&n.setAttribute("style",i)}})};document.body&&t(),document.addEventListener("DOMContentLoaded",t),setTimeout(t,1e3),setTimeout(t,3e3)}var $=(e,...t)=>String.raw({raw:e},...t);var Kt=[{id:"hide-mix-playlist",labelKey:"settings.userStyles.builtin.hideMixPlaylist.label",css:$`
+      ytm-compact-radio-renderer:has(yt-collections-stack),
+      ytm-compact-playlist-renderer:has(yt-collections-stack),
+      ytm-rich-item-renderer:has(yt-collections-stack) {
+        display: none !important;
+      }
+    `},{id:"hide-shorts-navbar",labelKey:"settings.userStyles.builtin.hideShortsInNavbar.label",css:$`
+      yt-tab-shape[tab-title='Shorts'],
+      ytd-guide-entry-renderer:has(a[href^='/shorts']),
+      ytd-mini-guide-entry-renderer:has(a[href^='/shorts']),
+      ytm-pivot-bar-item-renderer:has(.pivot-shorts) {
+        display: none !important;
+      }
+    `},{id:"hide-community-posts",labelKey:"settings.userStyles.builtin.hideCommunityPosts.label",css:$`
+      ytd-rich-section-renderer:has(ytd-post-renderer),
+      ytd-post-renderer,
+      ytd-backstage-post-thread-renderer,
+      ytm-rich-section-renderer:has(ytm-post-renderer),
+      ytm-post-renderer,
+      ytm-backstage-post-thread-renderer {
+        display: none !important;
+      }
+    `},{id:"hide-ask-button",labelKey:"settings.userStyles.builtin.hideAskButton.label",css:$`
+      .you-chat-entrypoint-button,
+      yt-button-view-model:has(> .you-chat-entrypoint-button) {
+        display: none !important;
+      }
+    `},{id:"hide-home-feed",labelKey:"settings.userStyles.builtin.hideHomeFeed.label",css:$`
+      ytd-browse[page-subtype='home'] #contents,
+      ytm-browse [tab-identifier='FEwhat_to_watch'] ytm-rich-grid-renderer {
+        display: none !important;
+      }
+    `},{id:"hide-related-videos",labelKey:"settings.userStyles.builtin.hideRelatedVideos.label",css:$`
+      #related,
+      ytd-watch-next-secondary-results-renderer,
+      ytm-watch-next-secondary-results-renderer,
+      ytm-item-section-renderer[section-identifier='related-items'] {
+        display: none !important;
+      }
+    `},{id:"hide-end-screens",labelKey:"settings.userStyles.builtin.hideEndScreens.label",css:$`
+      .ytp-ce-element,
+      .ytp-endscreen-content,
+      .ytp-suggested-video-overlay,
+      .ytp-pause-overlay,
+      .ytp-pause-overlay-container {
+        display: none !important;
+      }
+    `}],Ka=Kt.reduce((e,t)=>(e[t.id]=t,e),{}),_r=()=>({"hide-mix-playlist":{enabled:!1},"hide-shorts-navbar":{enabled:!1},"hide-community-posts":{enabled:!1},"hide-ask-button":{enabled:!1},"hide-home-feed":{enabled:!1},"hide-related-videos":{enabled:!1},"hide-end-screens":{enabled:!1}}),me=()=>({schemaVersion:5,builtins:_r(),customStyles:[],customScripts:[]}),Jt=(e,t)=>{let n=t||me(),o=Kt.filter(r=>n.builtins[r.id]?.enabled!==!1).map(r=>r.css.trim()).filter(Boolean),i=(n.customStyles||[]).filter(r=>r.enabled).filter(r=>r.css.trim()).map(r=>r.css.trim()).filter(Boolean);return[...o,...i].join(`
+
+`)};var Sr="(window.__nouUserScripts || (window.__nouUserScripts = { ran: {}, gen: 0 }))",Ja=`;${Sr}.gen++;`;var fe=e=>{let t=e>>>24&255,n=e>>>16&255,o=e>>>8&255,i=e&255;return`rgba(${n}, ${o}, ${i}, ${(t/255).toFixed(3)})`},kr=(e,t)=>{switch(e){case 1:return`-1px -1px 0 ${t}, 1px -1px 0 ${t}, -1px 1px 0 ${t}, 1px 1px 0 ${t}`;case 2:return`2px 2px 2px ${t}`;case 3:return`1px 1px 0 ${t}`;case 4:return`-1px -1px 0 ${t}`;default:return"none"}},Gt=e=>e<=.87?-1:e<=1.25?0:e<=1.75?1:e<=2.5?2:3,Xt=e=>{if(!e?.enabled)return"";let t=[],n=[],o=[];e.foregroundColor!=null&&t.push(`color: ${fe(e.foregroundColor)} !important;`),e.backgroundColor!=null&&n.push(`background-color: ${fe(e.backgroundColor)} !important;`),e.edgeType!=null&&t.push(`text-shadow: ${kr(e.edgeType,fe(e.edgeColor??4278190080))} !important;`),e.windowColor!=null&&o.push(`background-color: ${fe(e.windowColor)} !important;`);let i=[];return t.length&&i.push(`.ytp-caption-segment,
+.captions-text,
+.captions-text span {
+  ${t.join(`
+  `)}
+}`),n.length&&i.push(`.ytp-caption-segment,
+.captions-text span {
+  ${n.join(`
+  `)}
+}`),o.length&&i.push(`.caption-window {
+  ${o.join(`
+  `)}
+}`),i.join(`
+
+`)};function h(e,t){window.VideoAppI?window.VideoAppI.onMessage(JSON.stringify({type:e,data:t})):window.electron&&window.electron.ipcRenderer.sendToHost(e,t)}function A(...e){console.log(...e),h("[content]",e.length>1?{data:[...e]}:e[0])}function J(e,t){if(!e)return t;try{return JSON.parse(e)}catch{return t}}var g=window.trustedTypes.createPolicy("videoPolicy",{createHTML:e=>e}),G=document.location.host=="music.youtube.com";var et="_video_pip",tt="_video_pip_ancestor",Zt=0,he;function ot(){if(!window.VideoAppPip){he=new Map;for(let e of["outerWidth","outerHeight"]){he.set(e,Object.getOwnPropertyDescriptor(window,e));let t=Math.max(window[e],e==="outerWidth"?screen.width:screen.height);Object.defineProperty(window,e,{configurable:!0,get:()=>t})}window.VideoAppPip=!0}}async function tn(e){let t=++Zt;if(!e){let i=!document.querySelector("video")?.paused;if(window.VideoAppPip=!1,document.getElementById(et)?.remove(),document.querySelectorAll("."+tt).forEach(r=>r.classList.remove(tt)),await new Promise(r=>setTimeout(r,500)),t!==Zt)return;for(let[r,a]of he||[])a?Object.defineProperty(window,r,a):Reflect.deleteProperty(window,r);he=void 0,window.dispatchEvent(new Event("resize")),i&&window.VideoApp.play();return}if(ot(),document.fullscreenElement&&await document.exitFullscreen(),!window.VideoAppPip)return;document.getElementById(et)?.remove();let n=document.querySelector("video");for(let i=n?.parentElement;i;i=i.parentElement)i.classList.add(tt);let o=document.createElement("style");o.id=et,o.textContent=`
+    body *:not(._video_pip_ancestor):not(video) { display: none !important; }
+    ._video_pip_ancestor {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      transform: none !important;
+      overflow: visible !important;
+    }
+    html, body { background: black !important; }
+    video {
+      visibility: visible !important;
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: contain !important;
+      transform: none !important;
+      z-index: 2147483647 !important;
+    }
+  `,document.head.appendChild(o),window.dispatchEvent(new Event("resize")),window.VideoApp.play()}var Er=()=>window.VideoAppToken||"",Tr="video:settings",en="";function Lr(){try{return JSON.parse(localStorage.getItem(Tr)||"{}").pictureInPicture===!0}catch{return!1}}function nt(){let e=document.querySelector("video"),t=!!document.fullscreenElement||document.location.pathname=="/watch",o=Lr()&&!G&&t&&e&&!e.paused&&!e.ended&&e.videoWidth>0?[e.videoWidth,e.videoHeight]:[0,0],i=o.join("x");i!=en&&(en=i,window.VideoAppI?.setPictureInPictureVideo?.(Er(),o[0],o[1]))}function nn(){if(!(!window.isAndroid||!window.VideoAppI?.setPictureInPictureVideo)){for(let e of["play","playing","pause","ended","emptied","loadedmetadata","resize"])document.addEventListener(e,nt,!0);for(let e of["yt-navigate-finish","fullscreenchange","popstate","videoapp:settings"])window.addEventListener(e,nt);nt()}}var ye=class extends Error{constructor(t="The operation was aborted"){super(t),this.name="AbortError"}};function on(e,t,{signal:n,edges:o}={}){let i,r=null,a=o!=null&&o.includes("leading"),s=o==null||o.includes("trailing"),l=()=>{r!==null&&(e.apply(i,r),i=void 0,r=null)},p=()=>{s&&l(),m()},d=null,u=()=>{d!=null&&clearTimeout(d),d=setTimeout(()=>{d=null,p()},t)},c=()=>{d!==null&&(clearTimeout(d),d=null)},m=()=>{c(),i=void 0,r=null},f=()=>{l()},y=function(...x){if(n?.aborted)return;i=this,r=x;let v=d==null;u(),a&&v&&l()};return y.schedule=u,y.cancel=m,y.flush=f,n?.addEventListener("abort",m,{once:!0}),y}function rn(e,{signal:t}={}){return new Promise((n,o)=>{let i=()=>{o(new ye)},r=()=>{clearTimeout(a),i()};if(t?.aborted)return i();let a=setTimeout(()=>{t?.removeEventListener("abort",r),n()},e);t?.addEventListener("abort",r,{once:!0})})}var an=0,Mr=Number.POSITIVE_INFINITY,sn=()=>!0;async function B(e,t){let n,o,i,r;typeof t=="number"?(n=an,o=t,i=void 0,r=sn):(n=t?.delay??an,o=t?.retries??Mr,i=t?.signal,r=t?.shouldRetry??sn);let a;for(let s=0;s<o;s++){if(i?.aborted)throw a??new Error("The retry operation was aborted due to an abort signal.");try{return await e()}catch(l){if(a=l,!r(l,s))throw l;let p=typeof n=="function"?n(s):n;await rn(p)}}throw a}function ge(e,t,{signal:n,edges:o=["leading","trailing"]}={}){let i=null,r=on(function(...s){i=Date.now(),e.apply(this,s)},t,{signal:n,edges:o}),a=function(...s){if(i==null&&(i=Date.now()),Date.now()-i>=t){i=Date.now(),e.apply(this,s),r.cancel(),r.schedule();return}r.apply(this,s)};return a.cancel=r.cancel,a.flush=r.flush,a}var Cr='<svg height="24" viewBox="0 0 24 24" width="24"><path d="m12.71 12 8.15 8.15-.71.71L12 12.71l-8.15 8.15-.71-.71L11.29 12 3.15 3.85l.71-.71L12 11.29l8.15-8.15.71.71L12.71 12z"></path></svg>',Ar='<svg height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M16 3v11H7.59L5 16.59V3h11m1-1H4v17l4-4h9V2zM8 18h8l4 4V6h-1v13.59L16.41 17H8v1z"></path></svg>';function Br(e){let t=document.querySelector("div#_video_livechat"),n=!!t;t||(t=document.createElement("div"),t.id="_video_livechat"),t.innerHTML=g.createHTML(`
+    <div>Loading...</div>
+    <iframe src="https://www.youtube.com/live_chat?v=${e}&embed_domain=${document.location.hostname}"></iframe>
+    <button>${Cr}</button>
+  `),n||(t.querySelector("button").onclick=()=>t.remove(),document.body.append(t)),window.innerWidth>1e3&&window.innerWidth>window.innerHeight?t.classList.add("right"):t.classList.remove("right")}function be(){document.querySelector("div#_video_livechat")?.remove(),document.querySelector("button#_video_livechat_btn")?.remove()}function ln(e){let t=document.querySelector("button#_video_livechat_btn"),n=!!t;t||(t=document.createElement("button"),t.id="_video_livechat_btn",t.innerHTML=g.createHTML(`${Ar} Live chat`),t.onclick=()=>Br(e)),n||document.body.append(t)}var Rr={en:"original",es:"original",fr:"originale",de:"original",it:"originale",pt:"original",ru:"\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B",ja:"\u30AA\u30EA\u30B8\u30CA\u30EB",ko:"\uC6D0\uBCF8",zh:"\u539F\u59CB",ar:"\u0623\u0635\u0644\u064A",hi:"\u092E\u0942\u0932",bn:"\u09AE\u09C2\u09B2",id:"asli",tr:"orijinal",vi:"nguy\xEAn b\u1EA3n",th:"\u0E15\u0E49\u0E19\u0E09\u0E1A\u0E31\u0E1A",nl:"origineel",pl:"oryginalny",sv:"original",fi:"alkuper\xE4inen",no:"original",da:"original",cs:"origin\xE1l",el:"\u03C0\u03C1\u03C9\u03C4\u03CC\u03C4\u03C5\u03C0\u03BF",he:"\u05DE\u05E7\u05D5\u05E8\u05D9",ro:"original",hu:"eredeti",uk:"\u043E\u0440\u0438\u0433\u0456\u043D\u0430\u043B",fa:"\u0627\u0635\u0644\u06CC",ms:"asal",tl:"orihinal",ta:"\u0B85\u0B9A\u0BB2\u0BCD",ur:"\u0627\u0635\u0644",hr:"izvorni",bg:"\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0435\u043D",sk:"origin\xE1l",sl:"izvirnik",sr:"\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B",lt:"originalus",lv:"ori\u0123in\u0101ls",et:"originaal",ka:"\u10DD\u10E0\u10D8\u10D2\u10D8\u10DC\u10D0\u10DA\u10D8",az:"orijinal",uz:"asl",kk:"\u0442\u04AF\u043F\u043D\u04B1\u0441\u049B\u0430",hy:"\u0562\u0576\u0585\u0580\u056B\u0576\u0561\u056F",km:"\u178A\u17BE\u1798",my:"\u1019\u1030\u101B\u103A\u1038",si:"\u0DB8\u0DD4\u0DBD\u0DCA",am:"\u12E8\u1218\u1300\u1218\u122A\u12EB\u12CD",ne:"\u092E\u094C\u0932\u093F\u0915",lo:"\u0E95\u0EBB\u0EC9\u0E99\u0EAA\u0EB0\u0E9A\u0EB1\u0E9A",mn:"\u044D\u0445",bo:"\u0F51\u0F44\u0F7C\u0F66\u0F0B\u0F42\u0F5E\u0F72\u0F0D",cy:"gwreiddiol",eo:"originala",eu:"jatorrizko",gl:"orixinal",gu:"\u0AAE\u0AC2\u0AB3",ha:"asali",ig:"izugbe",is:"upprunalegt",jv:"asli",kn:"\u0CAE\u0CC2\u0CB2",ku:"or\xEEj\xEEnal",ky:"\u0442\u04AF\u043F \u043D\u0443\u0441\u043A\u0430",lb:"original",mi:"taketake",ml:"\u0D2F\u0D25\u0D3E\u0D7C\u0D24\u0D4D\u0D25",mr:"\u092E\u0942\u0933",mt:"ori\u0121inali",or:"\u0B2E\u0B4C\u0B33\u0B3F\u0B15",pa:"\u0A05\u0A38\u0A32",ps:"\u0627\u0635\u0644\u064A",sd:"\u0627\u0635\u0644",sm:"muamua",sn:"chaicho",so:"asalka ah",sq:"origjinal",su:"asli",sw:"asili",te:"\u0C05\u0C38\u0C32\u0C41",tk:"asyl",tt:"\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u044C",ug:"\u0626\u06D5\u0633\u0644\u0649",yi:"\u05D0\u05E8\u05D9\u05D2\u05D9\u05E0\u05E2\u05DC",yo:"atil\u1EB9ba",zu:"okwangempela",af:"oorspronklik",bs:"originalni",ca:"original",ceb:"orihinal",co:"uriginale",fy:"oarspronklik",ga:"bunaidh",gd:"t\xF9sail",haw:"kumu",hmn:"thawj",ht:"orijinal",ia:"original",ie:"original",io:"originala",kw:"gwredhek",la:"originalis",ln:"ya liboso",mg:"tany am-boalohany",mk:"\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u0435\u043D",ny:"yoyamba",oc:"original",qu:"qallariy",rm:"original",rw:"cy'umwimerere",sa:"\u092E\u0942\u0932",sc:"originale",st:"ea pele",tg:"\u0430\u0441\u043B\u04E3",to:"\u02BBuluaki",wo:"nj\xEBkk",xh:"yokuqala","zh-tw":"\u539F\u59CB"},cn=[...new Set(Object.values(Rr))];function ve(){let e=localStorage.getItem("video:settings");if(!e)return!1;try{return JSON.parse(e).sponsorBlock}catch{return!1}}var dn={sponsor:"#00d400",selfpromo:"#ffff00",interaction:"#cc00ff",intro:"#00ffff",outro:"#0202ed",preview:"#008fd6",music_offtopic:"#ff9900",poi_highlight:"#ff1684",filler:"#7300ff"},rt="_video_sb_segments",Pr="_video_sb_segment",Ir=[".ytChapteredProgressBarHost",".ytp-progress-list",".progress-bar-line",".progress-bar-background"],Hr=[".ytChapteredProgressBarChapteredPlayerBarChapter",".ytp-chapter-hover-container"];function Vr(){let e=[];for(let t of Ir)for(let n of document.querySelectorAll(t))n.offsetWidth>0&&e.push(n);return e}function $r(e){let t=[];for(let r of Hr)if(t=Array.from(e.querySelectorAll(r)),t.length)break;if(!t.length)return[{start:0,end:1,left:0,width:e.offsetWidth}];let n=t.reduce((r,a)=>r+a.offsetWidth,0),o=[],i=0;for(let r of t){let a=parseFloat(r.style.width),s=r.style.width.endsWith("%")&&Number.isFinite(a)?a/100:r.offsetWidth/(n||1);o.push({start:i,end:i+s,left:r.offsetLeft,width:r.offsetWidth}),i+=s}return o[o.length-1].end=1,o}function it(){for(let e of document.querySelectorAll(`.${rt}`))e.parentElement?.removeAttribute("data-video-sb"),e.remove()}function we(e,t,n){if(!e||!n||!Number.isFinite(n))return;let o=t.map(({actionType:i,category:r,segment:a})=>`${i}:${r}:${a[0]}:${a[1]}`).join(",");for(let i of Vr()){let r=i.querySelector(`.${rt}`),a=$r(i),s=a.map(({start:p,end:d,left:u,width:c})=>`${p}:${d}:${u}:${c}`).join(","),l=`${e}:${n}:${o}:${i.offsetWidth}:${s}`;r&&i.dataset.videoSb===l||(r?.remove(),getComputedStyle(i).position=="static"&&(i.style.position="relative"),i.append(Nr(t,n,a)),i.dataset.videoSb=l)}}function Nr(e,t,n){let o=document.createElement("div");o.className=rt;for(let i of e){if(i.actionType=="full")continue;let r=dn[i.category]||dn.sponsor,a=Math.max(0,Math.min(1,i.segment[0]/t)),s=Math.max(a,Math.min(1,i.segment[1]/t));for(let l of n){let p=Math.max(a,l.start),d=Math.min(s,l.end);if(a==s?d<p:d<=p)continue;let u=l.end-l.start;if(u<=0)continue;let c=(d-p)/u*l.width;if(a!=s&&c<.5)continue;let m=document.createElement("div");m.className=Pr,m.style.left=`${l.left+(p-l.start)/u*l.width}px`,m.style.width=`${Math.max(a==s?2:1,c)}px`,m.style.background=r,o.append(m)}}return o}async function un(e){let t=await fetch(`https://sponsor.ajay.app/api/skipSegments?videoID=${e}`),n=[];return t.status==200&&(n=await t.json()),{videoId:e,segments:n}}var X=[.25,.5,.75,1,1.25,1.5,1.75,2,2.5,3,3.5,4];function pn(e){return`${e.toFixed(2).replace(/\.?0+$/,"")}x`}function mn(e){return!Number.isFinite(e)||X.includes(e)?X:[...X,e].sort((t,n)=>t-n)}var b,L="",T={videoId:"",segments:[]},fn=!1,hn="_video_fullscreen_title",xe={playing:"video:playing",settings:"video:settings"};function vn(){return J(localStorage.getItem(xe.settings),{})}function qr(){let{playbackRate:e}=vn();return typeof e=="number"&&Number.isFinite(e)?e:1}function Or(){let{playbackQuality:e}=vn();return typeof e=="string"?e:"auto"}function wn(e){let t=document.querySelector("#movie_player video")||e?.querySelector?.("video")||document.querySelector("video");return t instanceof HTMLVideoElement?t:null}function Ur(e){if(!window.isAndroid)return;let t=document.querySelector("#player-control-overlay .player-controls-content");if(!t||t.querySelector("player-fullscreen-top-controls"))return;let n=t.querySelector(`#${hn}`);n||(n=document.createElement("div"),n.id=hn,t.append(n)),n.textContent=e}function Dr(e){if(!(!e||e.__nouPlaybackRatesExtended))try{let t=e.getAvailablePlaybackRates?.bind(e),n=e.setPlaybackRate?.bind(e);if(!t||!n)return;e.getAvailablePlaybackRates=()=>X,e.setPlaybackRate=o=>{let i=wn(e);i&&(i.playbackRate=o),o<=2&&n(o),h("playback-rate",{playbackRate:o})},e.__nouPlaybackRatesExtended=!0}catch(t){A("failed to extend playback rates",t)}}function zr(e){let t=qr();try{e.setPlaybackRate?.(t)}catch(n){A("failed to apply playback rate",n)}}function jr(e){if(!(!e||e.__nouPlaybackQualityExtended))try{let t=e.setPlaybackQuality?.bind(e),n=e.setPlaybackQualityRange?.bind(e);t&&(e.setPlaybackQuality=o=>{t(o),h("playback-quality",{playbackQuality:o})}),n&&(e.setPlaybackQualityRange=(o,i)=>{n(o,i),h("playback-quality",{playbackQuality:o})}),e.__nouPlaybackQualityExtended=!0}catch(t){A("failed to extend playback quality",t)}}function Fr(e){let t=Or();try{let n=e.getAvailableQualityLevels?.();if(t==="auto")return;Array.isArray(n)&&n.includes(t),e.setPlaybackQualityRange?e.setPlaybackQualityRange(t,t):e.setPlaybackQuality&&e.setPlaybackQuality(t)}catch(n){A("failed to apply playback quality",n)}}function xn(e){for(let t of e)for(let n of t.addedNodes.values()){let o=n;o.id=="movie_player"&&_e(o)}if(!b?.__nouPlayerBound||!b.isConnected){let t=document.querySelector("#movie_player");t&&_e(t)}}function _e(e){if(b=e,e.__nouPlayerBound)return;e.__nouPlayerBound=!0,Dr(b),jr(b),e.addEventListener("onApiChange",()=>Z(e)),Z(e);let t="",n=0,o=d=>{let{videoDetails:u}=e.getPlayerResponse?.()||{},c=u?.videoId,m=b.getVideoUrl?.()||"";if(!(!c||!m))return{url:m,videoId:c,title:u.title||"",thumbnail:u.thumbnail?.thumbnails?.at(-1)?.url||"",current:d,duration:Number(u.lengthSeconds)||0}},i=ge(d=>{localStorage.setItem(xe.playing,JSON.stringify({url:d.url,current:d.current})),h("progress",d)},5e3),r=ge(()=>{if(!e.getCurrentTime){be();return}let d=e.getCurrentTime();window.VideoAppI?.notifyProgress(e.getPlayerState()==1,d);let u=o(d);if(u&&i(u),ve()&&L==T.videoId&&T.segments.length){we(L,T.segments,n||e.getDuration?.()||0);for(let c of T.segments){let[m,f]=c.segment;if(d>m&&d<f){b.seekTo(f);return}}}else it()},1e3),a=()=>{ve()&&L==T.videoId&&T.segments.length&&we(L,T.segments,n||e.getDuration?.()||0)};fn||(fn=!0,window.addEventListener("resize",a),document.addEventListener("fullscreenchange",()=>{a(),setTimeout(a,400)}));let s=!1,l=async d=>{h("play-state",{playing:d==1});let{playabilityStatus:u,videoDetails:c}=e.getPlayerResponse()||{};if(!c){be();return}if(d==0&&!G&&(localStorage.removeItem(xe.playing),h("playback-end")),document.location.host=="m.youtube.com"&&document.location.pathname=="/"){e.pauseVideo();return}if(!s){let H=wn(b);H&&(["play","pause","timeupdate"].forEach(V=>{H.addEventListener(V,r)}),H.addEventListener("ratechange",()=>{h("playback-rate",{playbackRate:H.playbackRate})}),s=!0)}let{title:m,author:f,thumbnail:y,lengthSeconds:x,videoId:v}=c;if(Ur(m),L!=v){i.cancel(),b.unMute();let H=y.thumbnails.at(-1);if(n=+x,t=m,window.VideoAppI?.notify(t,f,n,H?.url||""),L=v,window.VideoAppI&&(Wr(),be(),u?.liveStreamability&&ln(L)),it(),T={videoId:"",segments:[]},ve()){let V=await un(v);if(L!==v)return;T=V,we(v,V.segments,n)}zr(b),Fr(b)}};e.addEventListener("onStateChange",l);let p=e.getPlayerState?.();(p===1||p===2||p===3)&&l(p)}document.addEventListener("click",e=>{e.target?.closest?.(".fullscreen-icon, .ytp-fullscreen-button")&&(window.VideoAppFsIntent=Date.now())},!0);screen.orientation.addEventListener("change",e=>{if(window.VideoAppPip||document.location.pathname!="/watch"||document.visibilityState!="visible")return;e.target.type.includes("landscape")?!document.fullscreenElement&&screen.availWidth<1e3&&document.querySelector("#player-control-container .fullscreen-icon")?.click():document.fullscreenElement&&document.exitFullscreen()});async function _n(){await B(()=>{if(!b)throw"player not ready";return b},{retries:30,delay:100}),b?.playVideo();let e=await B(()=>{let a=b.getAvailableAudioTracks();if(!a.length)throw"tracks not ready";return a},{retries:30,delay:100}),t="",n,o=0;for(let a of e){for(let s of Object.values(a)){let l=s;l&&typeof l=="object"&&"isDefault"in l&&l.name&&(cn.some(p=>l.name.includes(p))&&(n=o.toString(),b.setAudioTrack(a)),t+=`<option value="${o}">${l.name}</option>`)}o++}let i=document.querySelector("div#_video_audio_picker");i||(i=document.createElement("div"),i.id="_video_audio_picker",document.body.append(i)),i.innerHTML=g.createHTML(`
+    <select>
+      ${t}
+    </select>
+  `);let r=i.querySelector("select");r&&(n&&(r.value=n),r.onchange=a=>{let s=a.target.value;s!=null&&b.setAudioTrack(e[+s])})}async function Wr(){if(document.location.pathname!="/watch"||G)return;let e=await B(async()=>{let n=document.querySelector("ytm-slim-video-information-renderer ytm-badge-supported-renderer");if(!n)throw"badge not ready";return n},{retries:30,delay:100});if(!e)return;let t=document.createElement("div");t.id="_video_audio_btn",t.innerHTML=g.createHTML(`
+    Play original audio \u{1F9A6}
+  `),t.onclick=n=>{n.stopPropagation(),b.pauseVideo(),h("embed",L)},e.append(t)}var yn=5;function gn(e){try{return new URL(e,document.location.href).searchParams.get("v")||""}catch{return""}}function bn(e){try{return new URL(e,document.location.href).searchParams.has("t")}catch{return!1}}async function Qr(e){try{(await B(async()=>{let n=document.getElementById("movie_player");if(!n?.seekTo)throw"player not ready";return n},{retries:30,delay:100}))?.seekTo(e)}catch(t){A("failed to seek to the saved position",t)}}function Sn(){let e=J(localStorage.getItem(xe.playing),{});if(!e.url)return;let t=Number(e.current)||0,n=gn(e.url);if(n&&n==gn(document.location.href)){t>=yn&&!bn(document.location.href)&&Qr(t);return}document.location.href=t>=yn&&!bn(e.url)?Yr(e.url,t):e.url}function Yr(e,t){try{let n=new URL(e,document.location.href);return n.searchParams.set("t",`${Math.floor(t)}s`),n.href}catch{return e}}var Kr=()=>document.getElementById("movie_player"),Jr=e=>({itag:e?.itag,mimeType:e?.mimeType,qualityLabel:e?.qualityLabel,height:e?.height,fps:e?.fps,bitrate:e?.bitrate,averageBitrate:e?.averageBitrate,contentLength:e?.contentLength}),En=e=>{let t=e?.streamingData,n=[...t?.formats??[],...t?.adaptiveFormats??[]];return n.length?{videoId:e?.videoDetails?.videoId??"",title:e?.videoDetails?.title??"",formats:n.map(Jr)}:null},Gr=e=>{try{let t=Kr()?.getPlayerResponse?.();return!t||t?.videoDetails?.videoId!==e?null:En(t)}catch{return null}},kn=e=>{let t=window.ytcfg;try{return t?.get?.(e)??t?.data_?.[e]}catch{return t?.data_?.[e]}},Xr=async e=>{let t=kn("INNERTUBE_CONTEXT");if(!t)return null;let n=kn("INNERTUBE_API_KEY"),o=await fetch(`/youtubei/v1/player?prettyPrint=false${n?`&key=${n}`:""}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({context:t,videoId:e,contentCheckOk:!0,racyCheckOk:!0})});if(!o.ok)return null;let i=await o.json(),r=i?.playabilityStatus?.status;return r&&r!=="OK"?null:En(i)},Tn=async e=>Gr(e)??Xr(e).catch(()=>null);var M="videoapp:settings",at="videoapp:user-styles",st="videoapp:blocklist",ee={},Se=me(),ke=Q(),_=()=>document.getElementById("movie_player"),Ln=!1;function Zr(){Ln||(Ln=!0,window.addEventListener("keyup",e=>{h("keyup",{key:e.key,metaKey:e.metaKey,ctrlKey:e.ctrlKey})}),window.addEventListener("paste",e=>{if(Mn(e.target)||Mn(document.activeElement))return;let t=e.clipboardData?.getData("text");t&&h("paste",t)}))}function Mn(e){if(!e)return!1;let t=e.tagName?.toUpperCase?.();return t==="INPUT"||t==="TEXTAREA"||t==="SELECT"||e.isContentEditable===!0}function ei(){return ee}function Cn(e={}){return ee={...ee,...e},window.dispatchEvent(new CustomEvent(M,{detail:ee})),ee}function ti(){return Se}function An(e){return Se=e||me(),window.dispatchEvent(new CustomEvent(at,{detail:Se})),Se}function ni(){return ke}function Bn(e){return ke=e||Q(),window.dispatchEvent(new CustomEvent(st,{detail:ke})),ke}function Rn(){return window.VideoAppInitialSettings&&Cn(window.VideoAppInitialSettings),window.VideoAppBlocklist&&Bn(window.VideoAppBlocklist),window.VideoAppUserStyles&&An(window.VideoAppUserStyles),nn(),{getSettings:ei,setSettings:Cn,getUserStyles:ti,setUserStyles:An,getBlocklist:ni,setBlocklist:Bn,preparePictureInPicture:ot,setPictureInPicture:tn,shortsHidden:!0,play:()=>_()?.playVideo(),pause:()=>_()?.pauseVideo(),prev:()=>_()?.previousVideo(),next:()=>_()?.nextVideo(),seekBy:e=>_()?.seekBy(e),seekTo:e=>_()?.seekTo(e),getVideoUrl:()=>_()?.getVideoUrl?.()||"",getPlaybackRate:()=>_()?.getPlaybackRate?.(),setPlaybackRate:e=>_()?.setPlaybackRate?.(e),getPlaybackQuality:()=>_()?.getPlaybackQuality?.(),setPlaybackQuality:e=>{let t=_();t&&(t.setPlaybackQualityRange?t.setPlaybackQualityRange(e,e):t.setPlaybackQuality&&t.setPlaybackQuality(e))},hideShorts(){Pn(),this.shortsHidden=!0},showShorts(){In(),this.shortsHidden=!1},playDefaultAudio:_n,restoreLastPlaying:Sn,bridgeShortcuts:Zr,getPlayerFormats:Tn}}var Hn=null,lt="video:caption-font-size",oi=()=>{try{let e=localStorage.getItem(lt);if(e==null)return null;let t=Number(e);return Number.isFinite(t)?t:null}catch{return null}},Vn=()=>window.VideoApp?.getSettings?.()?.captionStyle||null,$n=()=>Xt(Vn());function Z(e){e&&(Hn=e);let t=Hn||document.getElementById("movie_player");if(!t||typeof t.setOption!="function")return;let n=t.getOptions?.();if(!Array.isArray(n)||!n.includes("captions"))return;let o=Vn(),i=oi();if(!o?.enabled){if(i!=null)try{t.setOption("captions","fontSize",i),localStorage.removeItem(lt)}catch{}return}if(i==null)try{let r=t.getOption?.("captions","fontSize");localStorage.setItem(lt,String(typeof r=="number"?r:0))}catch{}try{t.setOption("captions","fontSize",Gt(o.fontScale))}catch{}}function ct(){window.addEventListener(M,()=>Z()),Z()}var Nn=`
+  /*
+   * Television home: YouTube's mobile web page shows a 2-column video grid,
+   * a category chips row across the top and a bottom navigation bar. None of
+   * that is remote-friendly on a 1280x720 TV, so strip the chrome and make the
+   * grid dense enough to show many tiles at once.
+   */
+
+  /* Bottom navigation bar (Home / Shorts / You) -- not needed with a D-pad. */
+  ytd-bottom-navigation-renderer,
+  ytm-bottom-navigation-renderer,
+  #bottom-navigation,
+  [class*='bottom-navigation'],
+  [class*='BottomNav'],
+  [id*='bottom-nav'] {
+    display: none !important;
+  }
+
+  /* Category / filter chips row across the top of the home feed. */
+  ytd-pivot-bar-renderer,
+  ytm-pivot-bar-renderer,
+  ytm-chip-cloud-renderer,
+  ytm-chip-renderer,
+  yt-chip-cloud-chip-renderer,
+  yt-chip-cloud-renderer,
+  #chips,
+  ytd-filter-chip-renderer,
+  [class*='pivot-bar'],
+  [class*='chip-row'],
+  [class*='chip-cloud'],
+  [class*='ChipCloud'],
+  [class*='category-filter'],
+  [id*='chips'] {
+    display: none !important;
+  }
+
+  /*
+   * Home feed: YouTube mobile lays the tiles out two across inside
+   * .rich-grid-renderer-contents. Four across with the container widened to
+   * the full screen turns the same feed into a TV wall of tiles.
+   */
+  html[data-video-page='home'] .rich-grid-renderer-contents {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px 12px !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+  }
+  html[data-video-page='home'] ytm-rich-item-renderer {
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    vertical-align: top !important;
+  }
+  html[data-video-page='home'] yt-lockup-view-model,
+  html[data-video-page='home'] .ytLockupViewModelHost,
+  html[data-video-page='home'] .ytLockupViewModelWrapper {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  /* Trim each tile to thumbnail + title so four rows fit on one screen. */
+  html[data-video-page='home'] .ytLockupMetadataViewModelHost,
+  html[data-video-page='home'] .yt-lockup-metadata-view-model {
+    margin-top: 6px !important;
+    padding: 0 !important;
+  }
+  html[data-video-page='home'] .ytContentMetadataViewModelHost,
+  html[data-video-page='home'] .ytContentMetadataViewModelMetadataRow,
+  html[data-video-page='home'] .ytContentMetadataViewModelMetadata {
+    display: none !important;
+  }
+
+  /* The mobile masthead wastes a full row on a logo and menu buttons. Keep
+   * just the search entry point, slimmed down. */
+  ytm-mobile-topbar-renderer {
+    min-height: 0 !important;
+  }
+  ytm-mobile-topbar-renderer .mobile-topbar-header-brand-container,
+  ytm-mobile-topbar-renderer .mobile-topbar-header-sign-in-button,
+  ytm-mobile-topbar-renderer ytm-button-renderer.icon-avatar_logged_out,
+  ytm-mobile-topbar-renderer button[aria-label*='account' i],
+  ytm-mobile-topbar-renderer button[aria-label*='more' i] {
+    display: none !important;
+  }
+`;var qn="_video_injected_css",te=(e,...t)=>String.raw({raw:e},...t),ri=te`
+  /*
+   * Text zoom (webView textZoom) scales fonts but not the fixed pixel heights
+   * YouTube hardcodes on its text containers, so zoomed titles/headlines get
+   * clipped. Drop those height clamps so the boxes grow with the text;
+   * -webkit-line-clamp still truncates long titles to the intended line count.
+   *
+   * The player is excluded: its own class list carries title-related flags
+   * (ytp-hide-fullscreen-title), and forcing height:auto on #movie_player
+   * collapses it to 0, clipping the video away.
+   */
+  :is(
+      [class*='headline' i],
+      [class*='title' i],
+      [class*='subhead' i],
+      [class*='channel-name' i]
+    ):not(#movie_player, #movie_player *) {
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /*
+   * YouTube's control scrim fades to fully transparent at the bottom, but the
+   * progress bar sits ~80% down, so the track (white at 35% alpha) disappears
+   * over a bright frame. Darken the bottom and outline the bar to keep it and
+   * the SponsorBlock segments readable.
+   */
+  #player-control-overlay .player-controls-background::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0) 35%);
+    pointer-events: none;
+  }
+
+  #player-control-overlay .ytPlayerProgressBarHost {
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+  }
+
+  /*
+   * YouTube Music mobile: when minimized to the bottom player bar,
+   * YouTube Music's collapse selector typo leaves ytmusic-app-layout fixed and
+   * leaves full player page backgrounds and overlays active over browsing content.
+   */
+  ytmusic-app-layout[player-ui-state='PLAYER_BAR_ONLY'] {
+    position: static !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  ytmusic-player-page[player-ui-state='PLAYER_BAR_ONLY'] {
+    visibility: hidden !important;
+    background: transparent !important;
+    pointer-events: none !important;
+  }
+
+  ytmusic-player-page[player-ui-state='PLAYER_BAR_ONLY'] ytmusic-player {
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #_video_fullscreen_title {
+    display: none;
+  }
+
+  #player-container-id:fullscreen #_video_fullscreen_title {
+    display: block;
+    position: absolute;
+    top: 14px;
+    left: 24px;
+    right: 192px;
+    z-index: 2;
+    overflow: hidden;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /*
+   * Newer YouTube ships its own fullscreen title inside
+   * player-fullscreen-top-controls, but keeps the whole host visibility:hidden
+   * until the "More videos" panel opens. Unhide just the title (not the close
+   * button next to it) and drop ours, otherwise both stack in the same corner.
+   * Scoped to .fadein because the controls hide by flipping visibility, and a
+   * title forced visible would stay burned over the video.
+   */
+  #player-container-id:fullscreen
+    #player-control-overlay.fadein
+    .ytwPlayerFullscreenTopControlsFullscreenControlsVideoTitle {
+    visibility: visible;
+    /*
+     * The title box spans the full width, under the top-right control cluster.
+     * YouTube gets away with that because the whole host is hidden; once we
+     * make the title visible it starts hit-testing and swallows taps on the
+     * captions and settings buttons, so it has to stay inert like ours.
+     */
+    pointer-events: none;
+    /*
+     * Its flex parent only reserves room for the close button (40px) next to
+     * the host's 12px padding, so the title still runs under the controls.
+     * Back both out of the 192px inset ours uses to land on the same edge.
+     */
+    margin-right: 140px;
+  }
+
+  #player-container-id:fullscreen
+    #player-control-overlay:has(player-fullscreen-top-controls)
+    #_video_fullscreen_title {
+    display: none;
+  }
+
+  /*
+   * Fullscreen controls button: only in fullscreen, and only while the controls
+   * are showing, so it never burns over the video. Left edge keeps it clear of
+   * the centered play/seek buttons and the top-right control cluster. Hidden
+   * once the panel or the lock overlay takes over.
+   *
+   * --_video_cutout_left is published by the native view (VideoAppView.kt): the
+   * fullscreen window draws under the display cutout, and in landscape the
+   * camera sits on a side edge at the same height as the button.
+   */
+  #_video_fs_btn {
+    display: none;
+  }
+
+  #player-container-id:fullscreen:has(#player-control-overlay.fadein):not(
+      :has(#_video_lock_overlay, #_video_fs_panel)
+    )
+    > #_video_fs_btn {
+    display: flex;
+    position: fixed;
+    top: 50%;
+    left: calc(16px + var(--_video_cutout_left, 0px));
+    z-index: 2147483646;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+  }
+
+  /* Same chain as above so it outweighs the left-edge rule. */
+  #player-container-id:fullscreen:has(#player-control-overlay.fadein):not(
+      :has(#_video_lock_overlay, #_video_fs_panel)
+    )
+    > #_video_fs_btn.right {
+    left: auto;
+    right: calc(16px + var(--_video_cutout_right, 0px));
+  }
+
+  #_video_lock_overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #_video_lock_overlay ._video_lock_unlock {
+    position: absolute;
+    top: 50%;
+    left: calc(16px + var(--_video_cutout_left, 0px));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+
+  #_video_lock_overlay.right ._video_lock_unlock {
+    left: auto;
+    right: calc(16px + var(--_video_cutout_right, 0px));
+  }
+
+  #_video_lock_overlay.reveal ._video_lock_unlock {
+    opacity: 1;
+    pointer-events: auto;
+  }
+`,ii=te`
+  /*
+   * The scrim only exists to give taps outside the panel something to land on;
+   * the panel's own event blocking still runs, this just keeps the hit area from
+   * falling through to YouTube's own layers visually.
+   */
+  #_video_fs_scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+  }
+
+  #_video_fs_panel {
+    position: fixed;
+    top: 50%;
+    left: calc(16px + var(--_video_cutout_left, 0px));
+    z-index: 2147483647;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: min(420px, calc(100vw - 32px - var(--_video_cutout_left, 0px) - var(--_video_cutout_right, 0px)));
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 14px 16px;
+    transform: translateY(-50%);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.82);
+    color: white;
+    font-size: 13px;
+    touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #_video_fs_panel.right {
+    left: auto;
+    right: calc(16px + var(--_video_cutout_right, 0px));
+  }
+
+  #_video_fs_panel ._video_fs_row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #_video_fs_panel ._video_fs_label {
+    flex: none;
+    width: 52px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  #_video_fs_panel ._video_fs_chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  #_video_fs_panel ._video_fs_chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  #_video_fs_panel ._video_fs_chip {
+    flex: none;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  #_video_fs_panel ._video_fs_chip.active {
+    background: #4f46e5;
+  }
+
+  #_video_fs_panel ._video_fs_value {
+    flex: none;
+    width: 40px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #_video_fs_panel #_video_fs_lock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-size: 14px;
+  }
+
+  #_video_fs_panel #_video_fs_side {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+  }
+
+  /*
+   * The WebView's native range widget centres its thumb on its own track
+   * metrics, which do not match the 4px track we want, so draw both parts
+   * ourselves. --_video_fill is written by the panel on every input so the filled
+   * portion still tracks the value without accent-color.
+   */
+  #_video_fs_panel ._video_fs_slider {
+    flex: 1;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  #_video_fs_panel ._video_fs_slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      #4f46e5 var(--_video_fill, 0%),
+      rgba(255, 255, 255, 0.3) var(--_video_fill, 0%)
+    );
+  }
+
+  #_video_fs_panel ._video_fs_slider::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border: none;
+    border-radius: 50%;
+    background: white;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+`,ai=te`
+  /*
+   * Fullscreen controls button, web player. The Android rule keys off
+   * #player-container-id and the mobile control overlay, neither of which the
+   * desktop site has; here the button is a direct child of whatever element
+   * YouTube put into fullscreen, and fullscreen-controls.ts toggles .hidden to
+   * follow the player's own autohide.
+   */
+  #_video_fs_btn {
+    display: none;
+  }
+
+  :fullscreen > #_video_fs_btn {
+    position: fixed;
+    top: 50%;
+    left: 16px;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.2s;
+  }
+
+  :fullscreen > #_video_fs_btn:hover {
+    background: rgba(0, 0, 0, 0.75);
+  }
+
+  :fullscreen > #_video_fs_btn.right {
+    left: auto;
+    right: 16px;
+  }
+
+  /* Faded rather than display:none so it can still be hovered back into view. */
+  :fullscreen > #_video_fs_btn.hidden {
+    opacity: 0;
+  }
+
+  /*
+   * A mouse cannot swipe a chip strip, and shift+wheel is not something to make
+   * the only way to reach the last few chips, so wrap them instead of scrolling
+   * on desktop.
+   */
+  #_video_fs_panel ._video_fs_chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* Once the chips wrap, the label belongs beside the first row of them, not
+     centred against the whole block. 23px is a chip's height: 13px of text plus
+     its 5px padding. */
+  #_video_fs_panel ._video_fs_row:has(._video_fs_chips) {
+    align-items: flex-start;
+  }
+
+  #_video_fs_panel ._video_fs_row:has(._video_fs_chips) ._video_fs_label {
+    line-height: 23px;
+  }
+
+  #_video_fs_panel ._video_fs_chip,
+  #_video_fs_panel #_video_fs_side {
+    cursor: pointer;
+  }
+
+  #_video_fs_panel ._video_fs_chip:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.24);
+  }
+
+  #_video_fs_panel #_video_fs_side:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+`,si=te`
+  ytd-page-top-ad-layout-renderer,
+  ytd-in-feed-ad-layout-renderer,
+  ad-slot-renderer,
+  yt-mealbar-promo-renderer,
+  ytm-promoted-sparkles-web-renderer,
+  .ytd-player-legacy-desktop-watch-ads-renderer {
+    display: none !important;
+  }
+
+  /* Ads are normally dropped from the feed data, but if one still renders, hide
+   * its grid cell too, otherwise the hidden ad leaves a blank tile behind. */
+  ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+  ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
+  ytd-rich-section-renderer:has(ytd-ad-slot-renderer),
+  ytd-rich-section-renderer:has(ytd-statement-banner-renderer),
+  ytd-item-section-renderer:has(ytd-ad-slot-renderer),
+  ytm-rich-item-renderer:has(ad-slot-renderer),
+  ytm-item-section-renderer:has(ad-slot-renderer),
+  ytd-rich-item-renderer:has(ad-slot-renderer),
+  ytd-rich-item-renderer:has(.ytwFeedAdMetadataViewModelHostMetadata) {
+    display: none !important;
+  }
+`,li=te`
+  a.app-install-link,
+  a.yt-spec-button-shape-next {
+    display: none !important;
+  }
+
+  #_video_livechat {
+    width: 100%;
+    height: 50vh;
+    position: fixed;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #e5e5e5;
+    background: white;
+    z-index: 10;
+  }
+  #_video_livechat.right {
+    width: 36vw;
+    height: 100%;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    border-top: none;
+    border-left: 1px solid #e5e5e5;
+  }
+
+  #_video_livechat button {
+    position: absolute;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #_video_livechat div {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  #_video_livechat iframe {
+    position: relative;
+    flex: 1;
+    border: none;
+  }
+
+  #_video_livechat_btn {
+    padding: 0.75rem 1rem;
+    background: #e1002d;
+    color: white;
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 16px;
+  }
+
+  .quick-actions-wrapper.enable-rtl-mirroring {
+    display: none !important;
+  }
+
+  #_video_audio_btn {
+    display: flex;
+    align-items: center;
+    background: #34d399;
+    padding: 0 4px;
+    color: #44403c;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  #_video_audio_picker {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+  }
+  #_video_audio_picker select {
+    border: none;
+    background: #a7f3d0;
+    color: #44403c;
+    padding: 2px;
+  }
+
+  ._video_sb_segments {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  ._video_sb_segment {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    opacity: 0.85;
+  }
+`,ci=()=>{let e=!!window.VideoAppI,t=!!window.VideoAppTV;return(window.VideoApp?.getSettings?.()?.blockAds!==!1?si:"")+li+(e?ri:ai)+(t?Nn:"")+ii},di=e=>[ci(),$n(),Jt(document.location.host,e)].filter(Boolean).join(`
+
+`);function dt(){let e=document.querySelector(`#${qn}`)||document.createElement("style"),t=()=>{let n=window.VideoApp?.getUserStyles?.();e.textContent=di(n)};e.id=qn,e.type="text/css",t(),(document.head||document.documentElement).appendChild(e),window.addEventListener(M,t),window.addEventListener(at,t)}function Pn(){let e=document.createElement("style");e.id="videoapp-shorts",e.type="text/css",e.textContent=`
+ytm-reel-shelf-renderer,
+ytd-reel-shelf-renderer,
+.ytGridShelfViewModelHost,
+grid-shelf-view-model,
+ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
+ytm-shorts-lockup-view-model,
+yt-lockup-view-model:has(a[href^='/shorts']),
+ytd-video-renderer:has(a[href^='/shorts']),
+ytm-video-with-context-renderer:has(a[href^='/shorts']) {
+  display: none !important;
+}
+`,document.head.appendChild(e)}function In(){document.querySelector("style#videoapp-shorts")?.remove()}var On=!1;function Un(){if(On)return;let e=document.querySelector("tp-yt-paper-dialog");if(!e)return;new MutationObserver(n=>{let o=e.querySelector("ytmusic-mealbar-promo-renderer .dismiss-button");o&&o.click()}).observe(e,{attributes:!0}),On=!0}var Dn='<svg height="16" viewBox="0 0 24 24" width="16" focusable="false" aria-hidden="true" style="pointer-events: none; display: inherit; width: 100%; height: 100%;"><path d="M21 16h-7v-1h7v1zm0-5H9v1h12v-1zm0-4H3v1h18V7zm-11 8-7-4v8l7-4z"></path></svg>',zn='<svg height="24" viewBox="0 -960 960 960" width="24" style="transform:scale(1.25)"><path d="m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143Zm-61 83.92 49.62-212.54-164.93-142.84 217.23-18.85L480-777.69l85.08 200.38 217.23 18.85-164.93 142.84L667-203.08 480-315.92 293-203.08ZM480-470Z"/></svg>',jn='<svg height="24" viewBox="0 0 24 24" width="24" style="transform:scale(1.1)"><path d="M5 20h14v-2H5v2Zm7-2 5.5-5.5-1.42-1.42L13 14.16V4h-2v10.16L7.92 11.08 6.5 12.5 12 18Z"/></svg>';var ui=({icon:e,label:t})=>g.createHTML(`
+    <button class="menu-item-button" style="display: flex; align-items: center; width: 100%; padding: 0 16px; min-height: 48px; background: none; border: none; font-family: inherit; font-size: 14px; text-align: left; cursor: pointer;">
+      <c3-icon fill-icon="false" style="margin-right: 16px; flex-shrink: 0; width: 24px; height: 24px;">
+        <span class="yt-icon-shape yt-spec-icon-shape" style="width: 24px; height: 24px; display: block;">
+          <div style="width: 24px; height: 24px; display: block; fill: currentcolor;">${e}</div>
+        </span>
+      </c3-icon>
+      <span class="yt-core-attributed-string" role="text" style="flex: 1; font-size: 14px;">${t} \u{1F9A6}</span>
+    </button>
+  `),pi=({icon:e,label:t})=>g.createHTML(`
+    <tp-yt-paper-item
+      class="style-scope ytd-menu-service-item-renderer"
+      role="option"
+      style="display: flex; align-items: center; width: 100%; padding: 0 16px; min-height: 40px; cursor: pointer;"
+    >
+      <yt-icon class="style-scope ytd-menu-service-item-renderer" style="margin-right: 16px; flex-shrink: 0; width: 24px; height: 24px;">
+        <span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost" style="width: 24px; height: 24px; display: block;">
+          <div style="width: 24px; height: 24px; display: block; fill: currentcolor;">${e}</div>
+        </span>
+      </yt-icon>
+      <yt-formatted-string class="style-scope ytd-menu-service-item-renderer" style="flex: 1; font-size: 14px;">${t} \u{1F9A6}</yt-formatted-string>
+    </tp-yt-paper-item>
+  `),Fn=(e,{icon:t,label:n})=>{e.querySelectorAll("[id]").forEach(r=>r.removeAttribute("id"));let o=e.querySelector(".ytListItemViewModelImage, .yt-list-item-view-model__image, c3-icon, yt-icon");if(o){let r=document.createElement("span");r.className=o.className,r.setAttribute("aria-hidden","true"),r.style.display="block",r.style.width="24px",r.style.height="24px",r.style.flexShrink="0",e.tagName.toLowerCase()==="ytm-menu-item"&&(r.style.marginRight="16px"),r.innerHTML=g.createHTML(`
+      <span class="yt-icon-shape ytSpecIconShapeHost" style="width: 24px; height: 24px; display: block;">
+        <div style="width: 24px; height: 24px; display: block; fill: currentcolor;">${t}</div>
+      </span>
+    `),o.replaceWith(r)}let i=e.querySelector('.ytListItemViewModelTitle, .yt-list-item-view-model__title, .ytAttributedStringHost, .yt-core-attributed-string[role="text"], yt-formatted-string');return i&&(i.textContent=`${n} \u{1F9A6}`,i.removeAttribute("is-empty")),e},Wn=e=>Array.from(e.children).find(t=>t.tagName.toLowerCase()==="yt-list-item-view-model"&&!t.className.includes("_video_")),ut=(e,t,n,o)=>{let i;switch(e.tagName.toLowerCase()){case"yt-list-view-model":{let r=o||Wn(e);if(!r)throw new Error("native list menu item is unavailable");i=Fn(r.cloneNode(!0),t);break}case"tp-yt-paper-listbox":i=document.createElement("ytd-menu-service-item-renderer"),i.innerHTML=pi(t);break;default:{let r=Array.from(e.children).find(a=>a.tagName.toLowerCase()==="ytm-menu-item"&&!a.className.includes("_video_"));i=r?Fn(r.cloneNode(!0),t):document.createElement("ytm-menu-item"),r||(i.innerHTML=ui(t))}}return i.classList.add(n),i};function Qn(){document.addEventListener("click",async e=>{let n=e.target.closest("ytm-media-item,ytm-compact-video-renderer,yt-lockup-metadata-view-model,ytd-video-renderer,ytd-grid-video-renderer");if(n){let o=await B(async()=>{let u=document.querySelectorAll("ytm-menu-service-item-renderer,ytm-menu-navigation-item-renderer,yt-list-view-model,tp-yt-paper-listbox"),c=Array.from(u).find(m=>m.offsetHeight>0);if(c){if(c.tagName.toLowerCase()==="yt-list-view-model"){let m=Wn(c);if(!m)throw"menu items not ready";return{menu:c,listItemTemplate:m.cloneNode(!0)}}return{menu:c}}throw"menu not ready"},{retries:50,delay:100}),{menu:i,listItemTemplate:r}=o,a=n.querySelector("h3")?.textContent?.trim()||n.querySelector("h4")?.textContent?.trim(),s=n.querySelector("a")?.href,l;if(window.VideoAppI){let u="_video_queue_";i.querySelectorAll(`.${u}`).forEach(c=>c.remove()),l=ut(i,{icon:Dn,label:"Add to queue"},u,r),l.onclick=()=>{s&&h("add-queue",{title:a,url:s}),l.remove()},i.prepend(l)}let p="_video_menu_";i.querySelectorAll(`.${p}`).forEach(u=>u.remove());let d={icon:zn,label:"Star"};l=ut(i,d,p,r),l.onclick=()=>{s&&h("star",{title:a,url:s})},i.prepend(l);{let u="_video_download_";i.querySelectorAll(`.${u}`).forEach(f=>f.remove());let c={icon:jn,label:"Download"},m=ut(i,c,u,r);if(m.onclick=()=>{s&&h("download",{url:s})},i.prepend(m),i.tagName.toLowerCase()=="tp-yt-paper-listbox"){let f=m.querySelector("yt-formatted-string");f?.hasAttribute("is-empty")&&(f.textContent=c.label+" \u{1F9A6}",f.removeAttribute("is-empty"));let y=m.querySelector("yt-icon");y?.hasAttribute("hidden")&&(y.innerHTML=g.createHTML(`
+              <span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost">
+                <div style="width: 100%; height: 100%; display: block; fill: currentcolor;">${c.icon}</div>
+              </span>
+            `),y.removeAttribute("hidden"))}}if(i.tagName.toLowerCase()=="tp-yt-paper-listbox"){let u=l.querySelector("yt-formatted-string");u?.hasAttribute("is-empty")&&(u.textContent=d.label+" \u{1F9A6}",u.removeAttribute("is-empty"));let c=l.querySelector("yt-icon");c?.hasAttribute("hidden")&&(c.innerHTML=g.createHTML(`
+            <span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost">
+              <div style="width: 100%; height: 100%; display: block; fill: currentcolor;">${d.icon}</div>
+            </span>
+          `),c.removeAttribute("hidden"))}}})}function Yn(){let e=document.querySelector("meta[name=viewport]");if(e){let t=e.getAttribute("content");if(t){let n=t.split(","),o=!1;["maximum-scale","user-scalable"].forEach(i=>{t.includes(i)&&(n=n.filter(r=>!r.includes(i)),o=!0)}),o&&e.setAttribute("content",n.join(","))}}}var Ee="_video_blocked",Kn="_video_blocklist_css",mt=["ytm-media-item","ytm-compact-video-renderer","ytm-video-with-context-renderer","ytd-video-renderer","ytd-compact-video-renderer","ytd-grid-video-renderer","ytd-rich-item-renderer","yt-lockup-view-model","yt-lockup-metadata-view-model"].join(",");function mi(){if(document.getElementById(Kn))return;let e=document.createElement("style");e.id=Kn,e.textContent=`.${Ee}{display:none!important;}`,(document.head||document.documentElement).appendChild(e)}function fi(){return window.VideoApp?.getBlocklist?.()||Q()}function k(e){return e?.textContent?.trim()||""}function hi(e){return[k(e.querySelector("h3")),k(e.querySelector("h4")),k(e.querySelector("#video-title")),k(e.querySelector("a#video-title")),k(e.querySelector(".yt-lockup-metadata-view-model-wiz__title")),k(e.querySelector('.yt-core-attributed-string[role="text"]'))].filter(Boolean)}function yi(e){return[...Array.from(e.querySelectorAll('a[href^="/@"],a[href^="/channel/"],a[href^="/c/"],a[href^="/user/"],a[href*="youtube.com/@"],a[href*="youtube.com/channel/"]')).flatMap(n=>[n.textContent?.trim(),n.getAttribute("href")||"",n.href||""]),k(e.querySelector(".yt-lockup-metadata-view-model-wiz__metadata")),k(e.querySelector("ytm-badge-and-byline-renderer")),k(e.querySelector("ytd-channel-name")),k(e.querySelector("#channel-name"))].filter(Boolean)}function ft(e){let t=fi();return ue(hi(e),t.keywords)||de(yi(e),t.channels)||We(e.getAttribute("aria-label")||"",t.keywords)}function pt(e=document){mi(),e.querySelectorAll?.(mt).forEach(t=>{t.classList.toggle(Ee,ft(t))})}function Jn(){pt(),window.addEventListener(st,()=>pt()),new MutationObserver(t=>{for(let n of t)n.addedNodes.forEach(o=>{if(o instanceof Element){o.matches(mt)&&o.classList.toggle(Ee,ft(o));let i=o.closest?.(mt);i&&i.classList.toggle(Ee,ft(i)),pt(o)}})}).observe(document.documentElement,{childList:!0,subtree:!0})}var N="_video_dislike_count",gt="_video_dislike_loaded",Gn="_video_dislike_css",gi="https://returnyoutubedislikeapi.com/votes?videoId=",Te=new Map,ht=new Map,O="",Xn=0,bi=["dislike-button-view-model","#segmented-dislike-button"].join(","),vi=["dislike-button-view-model button","#segmented-dislike-button button"].join(","),wi=[".ytSpecButtonShapeNextButtonTextContent",".ytSpecButtonShapeNextButtonTextContent span",".yt-core-attributed-string",".button-renderer-text"].join(",");function xi(){return!!window.VideoApp?.getSettings?.()?.showDislikes}function Zn(){let e=new URL(location.href);return e.hostname==="youtu.be"?e.pathname.split("/").filter(Boolean)[0]||"":e.pathname==="/shorts"?"":e.pathname.startsWith("/shorts/")?e.pathname.split("/")[2]||"":e.searchParams.get("v")||""}function _i(e){try{return new Intl.NumberFormat(void 0,{notation:"compact",maximumFractionDigits:1}).format(e)}catch{return String(e)}}function Si(){if(document.getElementById(Gn))return;let e=document.createElement("style");e.id=Gn,e.textContent=`
+    .${N} {
+      display: inline-flex !important;
+      align-items: center !important;
+      margin-left: 6px !important;
+      font: inherit !important;
+      font-size: 0.8em !important;
+      font-weight: 400 !important;
+      white-space: nowrap !important;
+    }
+  `,(document.head||document.documentElement).appendChild(e)}function yt(){document.querySelectorAll(`.${N}`).forEach(e=>{let t=e.closest("button");t?.dataset.videoDislikeIconButton==="true"&&(t.classList.add("ytSpecButtonShapeNextIconButton"),t.classList.remove("ytSpecButtonShapeNextIconLeading"),delete t.dataset.videoDislikeIconButton);let n=e.dataset.videoOriginalText;if(n!=null&&e.dataset.videoReused==="true"){e.textContent=n,e.classList.remove(N),delete e.dataset.videoOriginalText,delete e.dataset.videoReused;return}e.remove()}),document.querySelectorAll(`.${gt}`).forEach(e=>e.classList.remove(gt))}function ki(e){let t=new Set(e);document.querySelectorAll(`.${N}`).forEach(n=>{let o=n.closest("button");(!o||!t.has(o))&&n.remove()})}function eo(e){let t=e.getBoundingClientRect();return t.width>0&&t.height>0}function Ei(){let e=[...Array.from(document.querySelectorAll(vi)),...Array.from(document.querySelectorAll(['button[aria-label*="Dislike"]','button[aria-label*="dislike"]','[role="button"][aria-label*="Dislike"]','[role="button"][aria-label*="dislike"]'].join(",")))];return[...new Set(e)].filter(t=>{if(!eo(t))return!1;if(t.closest(bi))return!0;let n=`${t.getAttribute("aria-label")||""} ${t.getAttribute("title")||""}`;return/dislike/i.test(n)?!!t.closest(["ytd-segmented-like-dislike-button-renderer","segmented-like-dislike-button-view-model","ytm-slim-video-action-bar-renderer","ytm-like-button-renderer"].join(",")):!1})}function to(e){Si();let t=Ei();ki(t);for(let n of t){let o=n.querySelector(`.${N}`);if(o&&!o.classList.contains("ytSpecButtonShapeNextButtonTextContent")&&(o.remove(),o=null),!o)if(o=Array.from(n.querySelectorAll(wi)).find(eo)||null,o)o.dataset.videoOriginalText=o.textContent||"",o.dataset.videoReused="true",o.classList.add(N);else{o=document.createElement("div"),o.className=`ytSpecButtonShapeNextButtonTextContent ${N}`;let i=n.querySelector("yt-touch-feedback-shape");n.insertBefore(o,i||null),n.classList.contains("ytSpecButtonShapeNextIconButton")&&(n.dataset.videoDislikeIconButton="true",n.classList.remove("ytSpecButtonShapeNextIconButton"),n.classList.add("ytSpecButtonShapeNextIconLeading"))}o.textContent!==e&&(o.textContent=e),n.classList.add(gt)}}async function Ti(e){let t=Te.get(e);if(t)return t;let n=ht.get(e);if(n)return n;let o=fetch(`${gi}${encodeURIComponent(e)}`).then(async i=>{if(!i.ok)throw new Error(`Return YouTube Dislike responded with ${i.status}`);let r=await i.json(),a=typeof r?.dislikes=="number"?_i(r.dislikes):"";return a&&Te.set(e,a),a}).finally(()=>ht.delete(e));return ht.set(e,o),o}async function ne(){if(!xi()){O="",yt();return}let e=Zn();if(!e){O="",yt();return}let t=++Xn;e!==O&&(O=e,yt());try{let n=await Ti(e);t===Xn&&e===O&&n&&to(n)}catch(n){console.warn("VideoScript dislikes:",n)}}function no(){ne(),window.addEventListener(M,ne);for(let t of["yt-navigate-finish","state-navigateend","popstate"])window.addEventListener(t,ne),document.addEventListener(t,ne);new MutationObserver(()=>{let t=Zn();if(t&&t===O&&Te.has(t)){to(Te.get(t)||"");return}ne()}).observe(document.documentElement,{childList:!0,subtree:!0})}var Le="_video_translate_btn",oo="_video_translate_css",bt="ytm-comment-renderer, ytm-comment-thread-renderer, ytd-comment-thread-renderer, ytd-comment-view-model",io="#content-text, .comment-text, .comment-content, .YtmCommentRendererText, yt-attributed-string#content-text, yt-formatted-string#content-text",Li=".YtmCommentRendererDetails, ytm-comment-actions, #toolbar, #action-menu",Mi='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>';function ao(){return!!window.VideoApp?.getSettings?.()?.translateComments}function Ci(){if(document.getElementById(oo))return;let e=document.createElement("style");e.id=oo,e.textContent=`
+    .${Le} {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 4px 8px !important;
+      margin: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      color: inherit !important;
+      opacity: 0.7;
+      cursor: pointer;
+    }
+  `,(document.head||document.documentElement).appendChild(e)}function Ai(e){let t=[],n=()=>{t.length&&!t.at(-1)?.endsWith(`
+`)&&t.push(`
+`)},o=i=>{if(i.nodeType===Node.TEXT_NODE){let r=i.textContent?.replace(/\s+/g," ").trim();r&&t.push(r," ");return}if(i instanceof Element){if(i.tagName==="BR"){n();return}i.childNodes.forEach(o)}};return o(e),t.join("").replace(/[ \t]+\n/g,`
+`).replace(/\n[ \t]+/g,`
+`).replace(/[ \t]{2,}/g," ").replace(/\n{3,}/g,`
+
+`).trim()}function Bi(e){e.preventDefault(),e.stopPropagation();let o=e.currentTarget.closest(bt)?.querySelector(io);if(!o)return;let i=Ai(o);if(i.length<2||i.length>12e3)return;let r=o.getBoundingClientRect();h("translate-block",{id:`${Date.now()}-${Math.random()}`,text:i,x:r.left,y:r.bottom})}function Ri(){document.querySelectorAll(`.${Le}`).forEach(e=>e.remove())}function so(){Ci(),document.querySelectorAll(bt).forEach(e=>{let t=e.querySelector(Li);if(!t||t.closest(bt)!==e||t.querySelector(`.${Le}`)||!e.querySelector(io))return;let n=document.createElement("button");n.className=Le,n.type="button",n.setAttribute("aria-label","Translate"),n.innerHTML=g.createHTML(Mi),n.addEventListener("click",Bi);let o=t.querySelector(".YtmCommentRendererMenu");t.insertBefore(n,o)})}function ro(){ao()?so():Ri()}function lo(){if(!window.isAndroid)return;ro(),window.addEventListener(M,ro);let e=!1;new MutationObserver(()=>{e||!ao()||(e=!0,requestAnimationFrame(()=>{e=!1,so()}))}).observe(document.documentElement,{childList:!0,subtree:!0})}var Pi=["pp","si"];function vt(e){try{let t=new URL(e);return Pi.forEach(n=>t.searchParams.delete(n)),t.href}catch{return e}}function Ii(){let e=document.activeElement;return e instanceof HTMLInputElement||e instanceof HTMLTextAreaElement?e.selectionStart!==null&&e.selectionEnd!==null&&e.selectionStart!==e.selectionEnd?e.value.slice(e.selectionStart,e.selectionEnd):e.value:window.getSelection()?.toString()??""}function co(){let e=navigator.clipboard?.writeText;e&&(navigator.clipboard.writeText=async function(t){let n=vt(t);return e.call(this,n||t)}),document.addEventListener("copy",t=>{let n=t.clipboardData?.getData("text/plain")||Ii(),o=vt(n);!n||o===n||!t.clipboardData||(t.preventDefault(),t.clipboardData.setData("text/plain",o))},{capture:!0})}function uo(e){try{return new URL(e,location.href).pathname.startsWith("/watch")}catch{return!1}}function Hi(){return!!window.VideoApp?.getSettings?.()?.replaceWatchNavigation}function Vi(e){if(typeof e=="string"&&e)try{return new URL(e,location.href).href}catch{return location.href}return location.href}function po(){let e=window;if(e.__videoappWatchNavInit)return;e.__videoappWatchNavInit=!0;let t=history.pushState;history.pushState=function(...n){return Hi()&&uo(location.href)&&uo(Vi(n[2]))?history.replaceState.apply(this,n):t.apply(this,n)}}var wt=[{value:"auto",label:"Auto"},{value:"hd2160",label:"2160p (4K)"},{value:"hd1440",label:"1440p"},{value:"hd1080",label:"1080p"},{value:"hd720",label:"720p"},{value:"large",label:"480p"},{value:"medium",label:"360p"},{value:"small",label:"240p"},{value:"tiny",label:"144p"}];function mo(e){let t=wt.find(n=>n.value===e);return t?t.label:"Auto"}var Ce="_video_fs_btn",P="_video_fs_panel",xo="_video_fs_scrim",z="_video_lock_overlay",xt="_video_lock_unlock",oe="_video_fs_row",_t="_video_fs_chip",fo="_video_fs_slider",_o="active",ho="reveal",$i="hidden",Ni=3e3,So="video:brightness",ko="video:fsControlsSide",qi="right",Oi=`<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+  <path
+    d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"
+  ></path>
+</svg>`,Ui=`<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+  <path
+    d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zM9 7a3 3 0 0 1 6 0v2H9V7zm8 12H7v-8h10v8z"
+  ></path>
+</svg>`,Di=`<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+  <path
+    d="M17 9H9V7a3 3 0 0 1 5.83-1l1.9-.62A5 5 0 0 0 7 7v2H5v12h14V9zm0 10H7v-8h10v8z"
+  ></path>
+</svg>`,zi=`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+  <path d="M6.99 11 3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"></path>
+</svg>`,ji=`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.06A4.5 4.5 0 0 0 16.5 12z"></path>
+</svg>`,Fi=`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+  <path
+    d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM1 11h3v2H1v-2zm19 0h3v2h-3v-2zM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1zM5.6 19.8l-1.4-1.4 2.1-2.1 1.4 1.4-2.1 2.1zM18.4 4.2l1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1z"
+  ></path>
+</svg>`,Ae,Eo=()=>localStorage.getItem(ko)==="right"?"right":"left";function Re(e){e?.classList.toggle(qi,Eo()==="right")}function Wi(){localStorage.setItem(ko,Eo()==="right"?"left":"right");for(let e of[Ce,P,z])Re(document.getElementById(e))}var Pe=()=>document.fullscreenElement||document.webkitFullscreenElement,R=()=>document.getElementById("movie_player"),Ie=()=>!window.isAndroid,j=()=>window.VideoAppToken||"",Qi=()=>typeof window.VideoAppI?.setBrightness=="function",To=()=>typeof window.VideoAppI?.setVolumeIndex=="function",Lo=["touchstart","touchmove","touchend","touchcancel","pointerdown","pointermove","pointerup","mousedown","mouseup","click","dblclick","contextmenu","wheel"];function Mo(e){e.classList.add(ho),clearTimeout(Ae),Ae=setTimeout(()=>e.classList.remove(ho),Ni)}function yo(e){let t=document.getElementById(z),n=document.getElementById(P);if(!t&&!n)return;let o=e.target;o instanceof Element&&o.closest(`#${P}, .${xt}`)||(e.stopImmediatePropagation(),e.cancelable&&e.preventDefault(),(e.type==="touchend"||e.type==="click")&&(n?kt():t&&Mo(t)))}function St(e){for(let t of Lo)e.addEventListener(t,n=>n.stopPropagation())}function He(e){for(let t of Lo)e?document.addEventListener(t,yo,{capture:!0,passive:!1}):document.removeEventListener(t,yo,{capture:!0})}function Co(){clearTimeout(Ae),Ae=void 0,document.getElementById(z)?.remove(),document.getElementById(P)||He(!1)}function Yi(){let e=Pe();if(!e||document.getElementById(z))return;let t=document.createElement("div");t.id=z,Re(t),t.innerHTML=g.createHTML(`
+    <button type="button" class="${xt}" aria-label="Unlock">${Di}</button>
+  `);let n=t.querySelector(`.${xt}`);n.addEventListener("click",()=>Co()),St(n),e.append(t),He(!0),Mo(t)}function Ao(){let e=Number(localStorage.getItem(So));return Number.isFinite(e)&&e>0&&e<=100?e:void 0}function Ki(){let e=Ao();if(e!==void 0)return e;let t=window.VideoAppI?.getBrightness?.(j());return typeof t=="number"&&t>0?Math.round(Gi(t)*100):100}var Bo=.17883277,Ro=.28466892,Po=.55991073;function Ji(e){let t=e<=.5?(e/.5)**2:Math.exp((e-Po)/Bo)+Ro;return Math.min(Math.max(t/12,0),1)}function Gi(e){let t=Math.min(Math.max(e,0),1)*12,n=t<=1?.5*Math.sqrt(t):Bo*Math.log(t-Ro)+Po;return Math.min(Math.max(n,0),1)}function Io(e){window.VideoAppI?.setBrightness?.(j(),e>=100?-1:Ji(e/100))}function Xi(){let e=Ao();e!==void 0&&Io(e)}function Zi(){window.VideoAppI?.setBrightness?.(j(),-1)}function ea(){let e=window.VideoAppI?.getVolumeSteps?.(j());return typeof e=="number"&&e>0?e:0}function ta(){let e=window.VideoAppI?.getVolumeIndex?.(j());return typeof e=="number"&&Number.isFinite(e)?e:0}var na=()=>typeof R()?.setVolume=="function";function oa(){let e=R();if(e?.isMuted?.())return 0;let t=e?.getVolume?.();return typeof t=="number"&&Number.isFinite(t)?Math.round(t):100}function ra(e){let t=R();t?.setVolume?.(e),e>0&&t?.isMuted?.()&&t.unMute?.()}var Ho=()=>{let e=document.querySelector("#movie_player video")||document.querySelector("video");return e instanceof HTMLVideoElement?e:null},ia=2,re,U,go,Be=1;function aa(){let e=Ho();if(e){if(U&&go===e)return U;try{re||=new AudioContext;let t=re.createMediaElementSource(e);U=re.createGain(),t.connect(U).connect(re.destination),go=e}catch{return}return U}}function Vo(e){if(Be=e,e===1&&!U)return;let t=aa();t&&(t.gain.value=e,re?.resume?.())}function sa(){if(To()){let e=ea();return e?{native:!0,max:e,value:ta()}:void 0}if(Ie()&&na()){let e=oa();return{native:!1,max:100*ia,value:e<100?e:Math.round(Be*100)}}}function la(e){ra(Math.min(e,100)),Vo(e<=100?1:e/100)}var bo=(e,t)=>`${Math.round(To()?e/t*100:e)}%`;function ca(){let e=R()?.getAvailableQualityLevels?.(),t=Array.isArray(e)?e:[];return wt.filter(n=>n.value==="auto"||t.includes(n.value)).map(n=>n.value)}function da(){let e=J(localStorage.getItem("video:settings"),{});return typeof e.playbackQuality=="string"?e.playbackQuality:"auto"}function Me(e){if(!e)return;let t=Number(e.min),n=Number(e.max),o=n>t?(Number(e.value)-t)/(n-t):0;e.style.setProperty("--_video_fill",`${Math.round(o*100)}%`)}var vo=(e,t,n,o)=>`
+  <button
+    type="button"
+    class="${_t}${o?` ${_o}`:""}"
+    data-group="${e}"
+    data-value="${t}"
+  >
+    ${n}
+  </button>
+`;function ua(e){let t=Ho(),n=t?t.playbackRate:R()?.getPlaybackRate?.(),o=typeof n=="number"&&Number.isFinite(n)?n:1,i=da(),r=Ki(),a=sa(),s=mn(o).map(c=>vo("rate",String(c),pn(c),c===o)).join(""),l=ca().map(c=>vo("quality",c,mo(c),c===i)).join("");e.innerHTML=g.createHTML(`
+    <div class="${oe}">
+      ${window.isAndroid?`<button type="button" id="_video_fs_lock">${Ui}<span>Lock</span></button>`:""}
+      <button type="button" id="_video_fs_side" aria-label="Switch side">${zi}</button>
+    </div>
+    <div class="${oe}">
+      <span class="_video_fs_label">Speed</span>
+      <div class="_video_fs_chips">${s}</div>
+    </div>
+    <div class="${oe}">
+      <span class="_video_fs_label">Quality</span>
+      <div class="_video_fs_chips">${l}</div>
+    </div>
+    ${a?`<div class="${oe}">
+          ${ji}
+          <input
+            class="${fo}"
+            id="_video_fs_volume"
+            type="range"
+            min="0"
+            max="${a.max}"
+            step="1"
+            value="${a.value}"
+          />
+          <span class="_video_fs_value" id="_video_fs_volume_value"
+            >${bo(a.value,a.max)}</span
+          >
+        </div>`:""}
+    ${Qi()?`<div class="${oe}">
+          ${Fi}
+          <input
+            class="${fo}"
+            id="_video_fs_brightness"
+            type="range"
+            min="1"
+            max="100"
+            step="1"
+            value="${r}"
+          />
+        </div>`:""}
+  `),e.querySelector("#_video_fs_lock")?.addEventListener("click",()=>{kt(),Yi()}),e.querySelector("#_video_fs_side").addEventListener("click",()=>Wi()),e.addEventListener("click",c=>{let m=c.target;if(!(m instanceof Element))return;let f=m.closest(`.${_t}`);if(!f)return;let{group:y,value:x}=f.dataset;if(y==="rate")R()?.setPlaybackRate?.(Number(x));else if(y==="quality"){let v=R();v?.setPlaybackQualityRange?v.setPlaybackQualityRange(x,x):v?.setPlaybackQuality?.(x)}else return;for(let v of f.parentElement.querySelectorAll(`.${_t}`))v.classList.toggle(_o,v===f)});let p=e.querySelector("#_video_fs_volume"),d=e.querySelector("#_video_fs_volume_value");p?.addEventListener("input",()=>{let c=Number(p.value);a?.native?window.VideoAppI?.setVolumeIndex?.(j(),c):la(c),Me(p),d&&(d.textContent=bo(c,a.max))}),Me(p);let u=e.querySelector("#_video_fs_brightness");u?.addEventListener("input",()=>{let c=Number(u.value);localStorage.setItem(So,String(c)),Io(c),Me(u)}),Me(u)}function kt(){document.getElementById(P)?.remove(),document.getElementById(xo)?.remove(),document.getElementById(z)||He(!1),D()}function pa(){let e=Pe();if(!e||document.getElementById(P))return;Be>1&&Vo(Be);let t=document.createElement("div");t.id=xo;let n=document.createElement("div");n.id=P,Re(n),ua(n),St(n),e.append(t,n),He(!0),D()}function D(){if(!Ie())return;let e=document.getElementById(Ce);if(!e)return;let t=!e.matches(":hover")&&(!!document.getElementById(P)||!!R()?.classList.contains("ytp-autohide"));e.classList.toggle($i,t)}function wo(){let e=Pe();if(!e||e.querySelector(`:scope > #${Ce}`))return;let t=document.createElement("button");t.id=Ce,t.type="button",t.setAttribute("aria-label","Player controls"),t.innerHTML=g.createHTML(Oi),Re(t),t.onclick=()=>pa(),St(t),Ie()&&(t.addEventListener("mouseenter",()=>D()),t.addEventListener("mouseleave",()=>D())),e.append(t),D()}function $o(){let e=new MutationObserver(()=>{wo(),D()}),t=()=>{let n=Pe();n?(wo(),Xi(),e.observe(n,{childList:!0,subtree:!0,...Ie()?{attributes:!0,attributeFilter:["class"]}:{}})):(e.disconnect(),kt(),Co(),Zi())};document.addEventListener("fullscreenchange",t),document.addEventListener("webkitfullscreenchange",t)}var No=()=>{if(location.pathname!=="/watch")return;let t=document.querySelector("#movie_player")?.getPlayerResponse?.()?.videoDetails?.author;t&&document.querySelectorAll("ytm-slim-video-information-renderer .slim-video-information-channel-name .ytAttributedStringHost, ytm-slim-owner-renderer .ytAttributedStringHost").forEach(n=>{if(!/%[0-9a-f]{2}/i.test(n.textContent||""))return;let o=n.querySelectorAll(":scope > span"),i=o.length>1&&o[0].textContent==="@"?o[o.length-1]:n,r=i===n?"@"+t:t;i.textContent!==r&&(i.textContent=r)})};function qo(){location.host==="m.youtube.com"&&(new MutationObserver(No).observe(document.documentElement,{childList:!0,subtree:!0}),No())}var ma=1,fa=2,ha=()=>window.VideoAppToken||"",F=!1,Ve=!1,$e=!1,Ne=0,ie=0,Oo=()=>window.VideoAppBackground===!0;function ya(){for(let e of["ytmusic-you-there-renderer","ytm-confirm-dialog-renderer"]){let t=document.querySelector(e);if(!t)continue;let n=t.querySelectorAll("button");if(n.length===1)return n[0].click(),!0}return!1}function Uo(){let e=window.VideoApp;if(e&&!e.__nouGuardedPause){let t=e.pause.bind(e),n=e.play.bind(e);e.pause=()=>(F=!0,t()),e.play=()=>(F=!1,n()),e.__nouGuardedPause=!0}document.addEventListener("pause",t=>{let n=document.getElementById("movie_player");!Oo()&&t.target instanceof Node&&n?.contains(t.target)&&(F=!0)},!0);for(let t of["play","playing"])document.addEventListener(t,n=>{let o=document.getElementById("movie_player");n.target instanceof Node&&o?.contains(n.target)&&(F=!1,Ve=!0)},!0);setInterval(()=>{let t=document.getElementById("movie_player");if(!t?.getPlayerState)return;let n=t.getPlayerState();if(n===ma){F=!1,Ve=!0,$e=!1,Ne=0,ie=0;return}if(!Oo()){Ve=!1,$e=!1,Ne=0,ie=0;return}if(n!==fa||!Ve||F||$e||(Ne++,ie>=3))return;if(window.VideoAppI?.canAutoResume?.(ha())===!1){Ne>=6&&($e=!0);return}ie++;let o=ya();A(`background guard: resuming (attempt ${ie}, dialog: ${o})`),t.playVideo?.()},5e3)}function qe(e){try{let t=new URL(e);return["http:","https:"].includes(t.protocol)&&["youtube.com","www.youtube.com","m.youtube.com"].includes(t.host)&&t.pathname==="/watch"}catch{return!1}}function Do(e=window){Object.defineProperties(e,{outerWidth:{configurable:!0,get:()=>e.screen.width},outerHeight:{configurable:!0,get:()=>e.screen.height}})}function zo(e){let t=typeof e.composedPath=="function"?e.composedPath():[],n=e.target,o=[...t,n?.closest?.("a[href], ytm-home-logo")];for(let i of o){let r=i;if(r?.tagName==="A"){let a=r,s=a.getAttribute("href");if(s)return{href:s,target:a.target}}if(r?.tagName==="YTM-HOME-LOGO")return{href:"/"}}return null}var ga=["m.youtube.com","www.youtube.com","youtube.com","music.youtube.com"],ba=400,Ue=e=>qe(e.href);function va(){let e=window.VideoAppRole;return e==="browse"||e==="player"?e:null}function De(e){if(!e)return null;try{let t=new URL(e,location.href);return ga.includes(t.host)?t:null}catch{return null}}function Qo(e,t){return t==="browse"?Ue(e):!Ue(e)}function Yo(e,t){h(t==="browse"?"open-watch":"open-page",{url:e.href})}function wa(e){document.addEventListener("click",t=>{if(t.defaultPrevented||t.button!==0||t.metaKey||t.ctrlKey||t.shiftKey)return;let n=zo(t);if(!n||n.target==="_blank")return;let o=De(n.href);!o||!Qo(o,e)||(t.preventDefault(),t.stopImmediatePropagation(),Yo(o,e))},!0)}function xa(){let e=history.pushState;history.pushState=function(...t){let n=De(typeof t[2]=="string"?t[2]:location.href),o=De(location.href);return n&&o&&Ue(n)&&Ue(o)?history.replaceState.apply(this,t):e.apply(this,t)}}function _a(e){let t="",n=()=>{let r=De(location.href);if(!r||!Qo(r,e)){t="";return}if(r.href!==t){t=r.href,Yo(r,e);try{history.back()}catch{}}},o,i=()=>{clearTimeout(o);let r=location.href;o=setTimeout(()=>{location.href===r&&n()},ba)};window.addEventListener("popstate",i),window.addEventListener("yt-navigate-finish",i),document.addEventListener("yt-navigate-finish",i);for(let r of["pushState","replaceState"]){let a=history[r];history[r]=function(...s){let l=a.apply(this,s);return i(),l}}}function Ko(e){try{let t=new URL(e,location.href),n=document.createElement("a");n.href=t.href,n.style.display="none",document.body.appendChild(n),n.click(),n.remove()}catch{location.href=e}return!0}var w="_video_native_mini",jo="_video_native_mini_style",S="_video_native_fullscreen",Fo="_video_native_fullscreen_style",Sa=`
+  html.${w}, html.${w} body {
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+  /* The mobile player's parent has its own stacking context. A body backdrop
+     covers that entire context, regardless of the video's z-index. Hide the
+     surrounding page instead, keeping the live player in its original DOM. */
+  html.${w} body * {
+    visibility: hidden !important;
+  }
+  html.${w} #movie_player,
+  html.${w} #movie_player * {
+    visibility: visible !important;
+  }
+  /* Ancestors must not clip or offset the fixed player in the small viewport. */
+  html.${w} body :has(#movie_player) {
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+    overflow: visible !important;
+  }
+  html.${w} #movie_player {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    z-index: 2147483647 !important;
+    background: #000 !important;
+  }
+  /* The player sizes its video in inline pixels, which the rule above does not
+     touch, so the video has to be told to fill the box as well. */
+  html.${w} #movie_player .html5-video-container,
+  html.${w} #movie_player video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    object-fit: contain !important;
+  }
+  /* Controls are the app's job in the mini player: the box is too small to hit
+     anything, and a tap on it means "give me the video back". */
+  html.${w} #movie_player .ytp-chrome-top,
+  html.${w} #movie_player .ytp-chrome-bottom,
+  html.${w} #movie_player #player-control-overlay,
+  html.${w} #movie_player .ytp-gradient-top,
+  html.${w} #movie_player .ytp-gradient-bottom {
+    display: none !important;
+  }
+`,ka=`
+  html.${S}, html.${S} body {
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+  html.${S} body * {
+    visibility: hidden !important;
+  }
+  html.${S} #movie_player,
+  html.${S} #movie_player * {
+    visibility: visible !important;
+  }
+  html.${S} body :has(#movie_player) {
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+    overflow: hidden !important;
+  }
+  html.${S} #movie_player {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    z-index: 2147483647 !important;
+    background: #000 !important;
+  }
+  html.${S} #movie_player .html5-video-container,
+  html.${S} #movie_player video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    object-fit: contain !important;
+  }
+`;function Mt(e){let t=document.documentElement;if(t){if(e&&!document.getElementById(jo)){let n=document.createElement("style");n.id=jo,n.textContent=Sa,(document.head||t).appendChild(n)}t.classList.toggle(w,!!e),e&&t.classList.remove(S);try{window.dispatchEvent(new Event("resize"))}catch{}}}function Jo(e){let t=document.documentElement;if(t){if(e&&!document.getElementById(Fo)){let n=document.createElement("style");n.id=Fo,n.textContent=ka,(document.head||t).appendChild(n)}t.classList.toggle(S,!!e),e&&t.classList.remove(w);try{window.dispatchEvent(new Event("resize"))}catch{}}}var Oe=!1,W=null,Et=new WeakSet;function Wo(){for(let e of Array.from(document.querySelectorAll("video, audio"))){let t=e;Oe?t.muted||(t.muted=!0,Et.add(t)):Et.has(t)&&(Et.delete(t),t.muted=!1)}}function Go(e){Oe=!!e,Wo(),Oe&&!W?(W=new MutationObserver(()=>Wo()),W.observe(document.documentElement,{childList:!0,subtree:!0})):!Oe&&W&&(W.disconnect(),W=null)}var Ct=e=>e.tagName.indexOf("MINIPLAYER")!==-1||(e.getAttribute("class")||"").indexOf("iniplayer")!==-1;function Tt(e){let t=e;if(!t||t.nodeType!==1||!Ct(t)||!t.querySelector("video"))return!1;let n=t.getBoundingClientRect();return n.width>0&&n.height>0}var Xo=new WeakSet;function Lt(e){let t=e;return!t||t.nodeType!==1||!Xo.has(t)?!1:Array.from(t.querySelectorAll("video")).some(n=>!n.paused)}function Ea(e){let t=Array.from(e.querySelectorAll('[class*="lose" i]')).filter(n=>!n.closest("#movie_player, .html5-video-player"));return t.find(n=>Ct(n))||t[0]}function Ta(e){let t=e,n=()=>Tt(e)||Lt(e);try{t.setActive?.(!1)}catch{}if(n()&&e.hasAttribute("active"))try{t.active=!1}catch{}if(n())try{(e.closest("ytd-app")||document.documentElement).dispatchEvent(new CustomEvent("yt-close-miniplayer",{bubbles:!0,composed:!0}))}catch{}if(n()&&Ea(e)?.click(),n()){for(let o of Array.from(e.querySelectorAll("video")))try{o.pause()}catch{}try{e.style?.setProperty("display","none","important"),Xo.add(e)}catch{}}}function La(){let e=new WeakSet,t=new Set,n=r=>{if(!r)return null;for(let a of t)if(!a.isConnected)t.delete(a);else if(a===r||a.contains(r))return a;return null},o=r=>{r&&r.nodeType===1&&Ct(r)&&t.add(r),!(!Tt(r)&&!Lt(r)||e.has(r))&&(e.add(r),requestAnimationFrame(()=>{e.delete(r),(Tt(r)||Lt(r))&&Ta(r)}))},i=()=>{for(let r of Array.from(document.querySelectorAll("*")))o(r);new MutationObserver(r=>{for(let a of r)if(a.type==="childList"){for(let s of Array.from(a.addedNodes))o(s);o(n(a.target))}else o(a.target)}).observe(document.documentElement,{subtree:!0,childList:!0,attributes:!0,attributeFilter:["class","active","hidden","style"]}),document.addEventListener("play",r=>{o(n(r.target))},!0)};document.documentElement?i():document.addEventListener("DOMContentLoaded",i,{once:!0})}function Zo(){let e=va();if(!e||location.host==="music.youtube.com")return;let t=window;t.__nouSplitViewInstalled||(t.__nouSplitViewInstalled=!0,wa(e),_a(e),e==="browse"&&La(),e==="player"&&(Do(),xa()),window.VideoAppNativeMini&&Mt(!0))}var Ma=["ytm-media-item","ytm-compact-video-renderer","ytm-video-with-context-renderer","ytm-rich-item-renderer","ytd-video-renderer","ytd-compact-video-renderer","ytd-grid-video-renderer","ytd-rich-item-renderer","ytd-rich-grid-media","yt-lockup-view-model","yt-lockup-metadata-view-model"].join(","),Ca=['button[aria-label*="more" i]','button[aria-label*="action" i]','button[aria-label*="save" i]','button[aria-label*="share" i]','button[aria-label*="download" i]','button[aria-label*="queue" i]'].join(","),rr='a[href],button,[role="button"],[tabindex]:not([tabindex="-1"])',At="#movie_player,.html5-video-player,#player,#player-container-id,ytm-player,ytd-player,#shorts-player",Bt="#_video_fs_panel, #_video_fs_btn, #_video_lock_overlay",Rt="_video_remote_focused",ze="_video_remote_focused_tile",I="_video_remote_navigation",Aa="_video_native_fullscreen",Ba=`
+  html.${I} :focus {
+    outline: none !important;
+  }
+  html.${I} .${Rt} {
+    position: relative !important;
+    z-index: 2147483000 !important;
+    outline: 3px solid #ff8b68 !important;
+    outline-offset: 3px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 0 6px rgba(9, 9, 11, .92), 0 0 22px rgba(255, 139, 104, .9) !important;
+  }
+  html.${I} .${ze} {
+    position: relative !important;
+    z-index: 2147482999 !important;
+    outline: 3px solid #ff8b68 !important;
+    outline-offset: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 0 0 7px rgba(9, 9, 11, .94), 0 0 26px rgba(255, 139, 104, .88) !important;
+    scroll-margin-block: 84px 96px !important;
+  }
+`;function le(e){return!!(e&&(e instanceof HTMLInputElement||e instanceof HTMLTextAreaElement||e instanceof HTMLSelectElement||e.isContentEditable))}function E(e){if(!e.isConnected||e.closest('[hidden],[aria-hidden="true"]'))return!1;let t=getComputedStyle(e),n=e.getBoundingClientRect();return t.display!=="none"&&t.visibility!=="hidden"&&Number(t.opacity||1)>0&&n.width>=8&&n.height>=8}function je(e){return e.closest(Ma)}function ce(e){return!!e.closest(Ca)}function er(e){if(!(e instanceof HTMLInputElement))return!1;let t=`${e.id} ${e.name} ${e.getAttribute("aria-label")||""} ${e.placeholder||""}`.toLowerCase();return e.matches('#search,[name="search_query"]')||t.includes("search")}function Ra(e){let t=['a[href*="search_query"]','a[href*="/results"]','[role="option"]','[role="link"]',"yt-searchbox a[href]","ytm-searchbox a[href]"].join(","),n=[];for(let i of document.querySelectorAll(t))!E(i)||le(i)||i.getBoundingClientRect().top<e.bottom-4||n.push(i);n.sort((i,r)=>{let a=i.getBoundingClientRect(),s=r.getBoundingClientRect();return a.top-s.top||a.left-s.left});let o=[];for(let i of n){let r=i.getBoundingClientRect();o.some(a=>Math.abs(a.getBoundingClientRect().top-r.top)<8)||o.push(i)}return o}function tr(){let e=document.documentElement;if(!e)return;let t=location.pathname,n=t==="/"||t.startsWith("/feed")?"home":t.startsWith("/results")?"results":t.startsWith("/watch")?"watch":"other";e.dataset.videoPage!==n&&(e.dataset.videoPage=n)}function Pa(e){try{let t=new URL(e.getAttribute("href")||"",location.href);return t.origin===location.origin&&(t.pathname==="/watch"||/^\/shorts\/[^/]+/.test(t.pathname))}catch{return!1}}function nr(e){let t=e.getBoundingClientRect();return t.width*t.height}function ir(e){return Array.from(e.querySelectorAll("a[href]")).filter(n=>Pa(n)&&E(n)).sort((n,o)=>nr(o)-nr(n))[0]||null}function Ia(e){let t=ir(e);if(t)return t.href;let n=e.getAttribute("video-id")||e.getAttribute("data-video-id")||e.querySelector("[video-id]")?.getAttribute("video-id")||e.querySelector("[data-video-id]")?.getAttribute("data-video-id");return n?new URL(`/watch?v=${encodeURIComponent(n)}`,location.origin).href:null}function Ha(e){let t=ir(e);if(t)return t;let n=e.querySelector('a#video-title, #video-title, a[href*="/watch"], .yt-lockup-metadata-view-model-wiz__title');return n&&E(n)?n:e.matches(rr)&&E(e)?e:null}function ae(e){let t=window,n=t.__nouRemoteFocused,o=t.__nouRemoteFocusedTile,i=je(e),r=i&&!ce(e);n?.classList.remove(Rt),o&&o!==i&&o.classList.remove(ze),r?i.classList.add(ze):(e.classList.add(Rt),i?.classList.add(ze)),t.__nouRemoteFocused=e,t.__nouRemoteFocusedTile=i,e.matches("a[href],button,input,select,textarea,[tabindex]")||e.setAttribute("tabindex","-1"),document.activeElement!==e&&e.focus({preventScroll:!0}),e.scrollIntoView({block:"nearest",inline:"nearest",behavior:"auto"})}function or(){let e=[],t=new Set,n=new Set;for(let o of document.querySelectorAll(rr)){if(o.closest(At)&&!o.closest(Bt)||!E(o)||le(o)||o.matches(':disabled,[aria-disabled="true"]'))continue;let r=je(o);if(r){if(ce(o)){n.has(o)||(n.add(o),e.push(o));continue}if(t.has(r))continue;t.add(r);let a=Ha(r);a&&e.push(a);continue}e.push(o)}return e}function se(e){let t=e.getBoundingClientRect();return{x:t.left+t.width/2,y:t.top+t.height/2}}function ar(e){return!!(je(e)&&!ce(e))}function Va(e,t,n){if(!e){let l=n==="up"||n==="down"?"y":"x";return t.sort((p,d)=>{let u=se(p),c=se(d);return n==="up"||n==="left"?u[l]-c[l]:c[l]-u[l]})[0]}let o=se(e),i=t.filter(l=>{if(l===e)return!1;let p=se(l);return n==="left"?p.x<o.x-1:n==="right"?p.x>o.x+1:n==="up"?p.y<o.y-1:p.y>o.y+1}),r=i.filter(ar),a=r.length?r:i.filter(l=>!ce(l));return(a.length?a:i).sort((l,p)=>{let d=u=>{let c=se(u),m=Math.abs(n==="left"||n==="right"?c.x-o.x:c.y-o.y),f=Math.abs(n==="left"||n==="right"?c.y-o.y:c.x-o.x);return m+f*2.6};return d(l)-d(p)})[0]}function $a(){let e=["ytm-searchbox button",'button[aria-label*="search" i]','[role="button"][aria-label*="search" i]','a[aria-label*="search" i]','input[aria-label*="search" i]','input[placeholder*="search" i]'];for(let t of e){let n=document.querySelector(t);if(n&&E(n))return n}return null}function Na(e){let t=Ia(e);return t?window.VideoAppRole&&qe(t)?(h("open-watch",{url:t}),!0):(location.assign(t),!0):!1}function qa(e){let t=je(e);if(t&&ce(e))return e.click(),!0;if(t)return Na(t);let n=e.closest("a[href]")||e.querySelector("a[href]");if(n)return location.assign(n.href),!0;let o=(e.textContent||"").trim(),i=!!e.closest('ytm-searchbox, ytd-searchbox, yt-searchbox, [role="search"], form');return o&&(i||e.matches('[role="option"], [role="link"]'))?(location.assign(`/results?search_query=${encodeURIComponent(o)}`),!0):(e.click(),!0)}function Pt(){if(!window.isAndroid||!window.VideoAppTV)return;let e=window;if(e.__nouRemoteNavigationInit)return;e.__nouRemoteNavigationInit=!0;let t=document.createElement("style");t.id="_video_remote_navigation_style",t.textContent=Ba;let n=()=>{t.isConnected||(document.head||document.documentElement)?.appendChild(t)};n(),t.isConnected||document.addEventListener("DOMContentLoaded",n,{once:!0}),tr(),setInterval(tr,800),e.__nouHandleBack=()=>{let r=document.activeElement;if(!(r instanceof HTMLInputElement))return!1;let a=`${r.id} ${r.name} ${r.getAttribute("aria-label")||""} ${r.placeholder}`.toLowerCase();if(!r.matches('#search,[name="search_query"]')&&!a.includes("search")||location.pathname.startsWith("/results"))return!1;let s=['button[aria-label*="close" i]','[role="button"][aria-label*="close" i]','button[aria-label*="back" i]','[role="button"][aria-label*="back" i]','button[aria-label*="cancel" i]','[role="button"][aria-label*="cancel" i]',"#searchbox-cancel","#cancel-button"].join(","),p=r.closest("ytm-searchbox,ytd-searchbox")?.querySelector(s)||document.querySelector(s);return p&&E(p)?p.click():(r.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:!0,cancelable:!0})),r.blur()),!0},document.addEventListener("focusin",r=>{let a=r.target instanceof HTMLElement?r.target:null;a&&(document.documentElement.classList.add(I),ae(a))},!0);let o,i=()=>{let r=e.__nouRemoteFocused;if(r&&E(r)||le(document.activeElement))return;let a=or(),s=a.find(ar),l=a.find(d=>!d.closest("ytm-mobile-topbar-renderer,ytd-masthead,ytm-pivot-bar-renderer")),p=s||l||a[0];p&&(document.documentElement.classList.add(I),ae(p),o?.disconnect(),o=void 0)};o=new MutationObserver(i),document.documentElement&&o?.observe(document.documentElement,{childList:!0,subtree:!0}),document.readyState==="loading"?document.addEventListener("DOMContentLoaded",i,{once:!0}):requestAnimationFrame(i),document.addEventListener("keydown",r=>{let a=r.key.toLowerCase(),s=a==="arrowleft"||r.keyCode===21?"left":a==="arrowright"||r.keyCode===22?"right":a==="arrowup"||r.keyCode===19?"up":a==="arrowdown"||r.keyCode===20?"down":null,l=a==="enter"||a==="numpadenter"||a==="select"||r.keyCode===23||r.keyCode===66;if(document.documentElement.classList.contains(Aa)){(l||s==="up"||s==="down")&&(r.preventDefault(),r.stopImmediatePropagation(),h("player-key",{key:a,keyCode:r.keyCode}));return}let p=r.target instanceof Element?r.target:null,d=document.activeElement instanceof HTMLElement?document.activeElement:null,u=p||d;if(s){let y=!!u?.closest(Bt);if(le(d)){if(er(d)&&s==="down"){let V=Ra(d.getBoundingClientRect())[0];if(V){r.preventDefault(),r.stopImmediatePropagation(),d.blur(),document.documentElement.classList.add(I),ae(V);return}}return}if(u?.closest(At)&&!y||r.altKey||r.ctrlKey||r.metaKey)return;document.documentElement.classList.add(I);let x=e.__nouRemoteFocused,v=Va(x&&E(x)?x:null,or(),s);r.preventDefault(),r.stopImmediatePropagation(),v?ae(v):(s==="up"||s==="down")&&window.scrollBy({top:window.innerHeight*(s==="down"?.78:-.78),behavior:"smooth"});return}if(le(d)){if(l&&er(d)){r.preventDefault(),r.stopImmediatePropagation();let y=d.closest("form, ytm-searchbox, ytd-searchbox, yt-searchbox");y&&typeof y.requestSubmit=="function"?y.requestSubmit():d.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:!0,cancelable:!0}))}return}if(!l)return;let c=!!u?.closest(Bt);if(u?.closest(At)&&!c)return;let m=e.__nouRemoteFocused;if(m&&E(m)){r.preventDefault(),r.stopImmediatePropagation(),qa(m);return}let f=$a();f&&(r.preventDefault(),r.stopImmediatePropagation(),document.documentElement.classList.add(I),ae(f),f.click())},!0)}try{window.VideoAppPreferH264&&Qt();let e=window.VideoAppClickbaitThumbnail;e&&e!=="default"&&Yt(e),window.VideoApp=Rn(),window.VideoApp.setMuted=Go,window.VideoApp.setNativeMini=Mt,window.VideoApp.setNativeFullscreen=Jo,window.VideoApp.navigateWatch=Ko,co(),po(),Zo(),window.electron||Ft(),document.documentElement?(dt(),Pt(),ct(),h("onload"),sr()):document.addEventListener("DOMContentLoaded",()=>{dt(),Pt(),ct(),h("onload"),sr()}),setInterval(()=>window._lact=Date.now(),60*1e3)}catch(e){console.error("VideoScript: ",e)}async function sr(){let e=document.querySelector("#movie_player");e&&_e(e),new MutationObserver(n=>{xn(n),Un()}).observe(document.documentElement,{childList:!0,subtree:!0}),Qn(),Jn(),no(),Oa(),$o(),lo(),qo(),window.isAndroid&&Uo(),Yn()}function Oa(){if(!window.isAndroid)return;let e=window;if(e.__videoappDoubleTapGesturesInit)return;e.__videoappDoubleTapGesturesInit=!0;let t=0,n=0,o=0,i=!1,r=s=>!!s.closest('input, textarea, select, button, a, video, audio, [contenteditable="true"], [role="button"],#movie_player, .html5-video-player, #player, #player-container-id, ytm-player, ytd-player, #shorts-player'),a=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);document.addEventListener("touchstart",s=>{s.touches.length>1&&(i=!0)},{passive:!0,capture:!0}),document.addEventListener("touchend",s=>{if(i){s.touches.length===0&&(i=!1);return}if(s.changedTouches.length!==1)return;if(a()){t=0;return}let l=s.changedTouches[0],p=Date.now(),d=l.clientX-n,u=l.clientY-o,c=p-t<=300&&d*d+u*u<=2304;if(t=p,n=l.clientX,o=l.clientY,!c)return;t=0;let f=(s.target instanceof Element?s.target:null)||document.elementFromPoint(l.clientX,l.clientY);if(!f||r(f))return;window.VideoApp?.getSettings?.()?.doubleTapToToggleHeader&&(s.preventDefault(),h("header-double-tap"))},{passive:!1,capture:!0})}})();

@@ -1,0 +1,4 @@
+provider: github
+owner: example
+repo: VideoApp-Desktop
+updaterCacheDirName: videoapp-desktop-updater

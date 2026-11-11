@@ -1,0 +1,139 @@
+import { preparePictureInPicture, setPictureInPicture, watchPictureInPictureVideo } from './picture-in-picture'
+import {
+  hideShorts,
+  showShorts,
+} from './css'
+import { playDefaultAudio, restoreLastPlaying } from './player'
+import { getPlayerFormats } from './player-formats'
+import { emit } from './utils'
+import { createDefaultUserStylesSnapshot, type UserStylesSnapshot } from '../lib/user-styles'
+import { createDefaultBlocklistSnapshot, type BlocklistSnapshot } from '../lib/blocklist'
+
+export const videoappSettingsEvent = 'videoapp:settings'
+export const videoappUserStylesEvent = 'videoapp:user-styles'
+export const videoappBlocklistEvent = 'videoapp:blocklist'
+
+let settings: Record<string, unknown> = {}
+let userStyles = createDefaultUserStylesSnapshot()
+let blocklist = createDefaultBlocklistSnapshot()
+
+const getPlayer = (): any => document.getElementById('movie_player')
+
+let bridged = false
+function bridgeShortcuts() {
+  if (bridged) {
+    return
+  }
+  bridged = true
+  window.addEventListener('keyup', (e) => {
+    emit('keyup', { key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey })
+  })
+  window.addEventListener('paste', (e) => {
+    /* Leave pastes into YouTube's search box, comment box etc. alone. */
+    if (isEditable(e.target) || isEditable(document.activeElement)) {
+      return
+    }
+    const text = e.clipboardData?.getData('text')
+    if (text) {
+      emit('paste', text)
+    }
+  })
+}
+
+function isEditable(target: any) {
+  if (!target) {
+    return false
+  }
+  const tag = target.tagName?.toUpperCase?.()
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable === true
+}
+
+function getSettings() {
+  return settings
+}
+
+function setSettings(next: Record<string, unknown> = {}) {
+  settings = { ...settings, ...next }
+  window.dispatchEvent(new CustomEvent(videoappSettingsEvent, { detail: settings }))
+  return settings
+}
+
+function getUserStyles() {
+  return userStyles
+}
+
+function setUserStyles(next?: UserStylesSnapshot) {
+  userStyles = next || createDefaultUserStylesSnapshot()
+  window.dispatchEvent(new CustomEvent(videoappUserStylesEvent, { detail: userStyles }))
+  return userStyles
+}
+
+function getBlocklist() {
+  return blocklist
+}
+
+function setBlocklist(next?: BlocklistSnapshot) {
+  blocklist = next || createDefaultBlocklistSnapshot()
+  window.dispatchEvent(new CustomEvent(videoappBlocklistEvent, { detail: blocklist }))
+  return blocklist
+}
+
+export function initVideoApp() {
+  if (window.VideoAppInitialSettings) {
+    setSettings(window.VideoAppInitialSettings)
+  }
+
+  if (window.VideoAppBlocklist) {
+    setBlocklist(window.VideoAppBlocklist)
+  }
+
+  if (window.VideoAppUserStyles) {
+    setUserStyles(window.VideoAppUserStyles)
+  }
+
+  watchPictureInPictureVideo()
+
+  return {
+    getSettings,
+    setSettings,
+    getUserStyles,
+    setUserStyles,
+    getBlocklist,
+    setBlocklist,
+    preparePictureInPicture,
+    setPictureInPicture,
+    shortsHidden: true,
+    play: () => getPlayer()?.playVideo(),
+    pause: () => getPlayer()?.pauseVideo(),
+    prev: () => getPlayer()?.previousVideo(),
+    next: () => getPlayer()?.nextVideo(),
+    seekBy: (delta: number) => getPlayer()?.seekBy(delta),
+    seekTo: (seconds: number) => getPlayer()?.seekTo(seconds),
+    getVideoUrl: () => getPlayer()?.getVideoUrl?.() || '',
+    getPlaybackRate: () => getPlayer()?.getPlaybackRate?.(),
+    setPlaybackRate: (rate: number) => getPlayer()?.setPlaybackRate?.(rate),
+    getPlaybackQuality: () => getPlayer()?.getPlaybackQuality?.(),
+    setPlaybackQuality: (quality: string) => {
+      const p = getPlayer()
+      if (p) {
+        if (p.setPlaybackQualityRange) {
+          p.setPlaybackQualityRange(quality, quality)
+        } else if (p.setPlaybackQuality) {
+          p.setPlaybackQuality(quality)
+        }
+      }
+    },
+    hideShorts() {
+      hideShorts()
+      this.shortsHidden = true
+    },
+    showShorts() {
+      showShorts()
+      this.shortsHidden = false
+    },
+    playDefaultAudio,
+    restoreLastPlaying,
+    bridgeShortcuts,
+    getPlayerFormats,
+  }
+}
