@@ -35,6 +35,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Set up Gradle and restore build cache
+        uses: gradle/actions/setup-gradle@v4
+
       - uses: oven-sh/setup-bun@v2
 
       - name: install and prebuild
@@ -43,5 +46,5 @@ jobs:
           bun expo prebuild -p android --clean --no-install
 
       - name: test Android module
-        run: ./gradlew :video-app-view:testFullDebugUnitTest :video-app-view:testFossDebugUnitTest
+        run: ./gradlew :video-app-view:testFullDebugUnitTest :video-app-view:testFossDebugUnitTest --build-cache --parallel
         working-directory: android
