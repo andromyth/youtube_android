@@ -269,10 +269,9 @@ export function setSplitPageUrl(view: 'browse' | 'player', url: string) {
   }
 }
 
-/* Back from a full player closes it and returns to the browsing webview.
- * When the TV control bar is up, the first Back only dismisses the bar -- the
- * video is still what the user is watching. Returns true when the press was
- * consumed. */
+/* Back from a full player returns to the browsing view while keeping the
+ * video playing in the mini player. When the TV control bar is up, the first
+ * Back only dismisses the bar. Returns true when the press was consumed. */
 export function handleSplitBack() {
   if (!isSplitWatchEnabled() || ui$.playerMode.get() !== 'full') {
     return false
@@ -281,7 +280,7 @@ export function handleSplitBack() {
     ui$.playerControlsVisible.set(false)
     return true
   }
-  closePlayer()
+  hidePlayer()
   return true
 }
 
