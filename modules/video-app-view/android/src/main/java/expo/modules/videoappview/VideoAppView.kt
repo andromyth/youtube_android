@@ -123,6 +123,15 @@ internal fun isYouTubeVideoUrl(value: String): Boolean {
   }
 }
 
+// Fullscreen YouTube video surfaces need to remain window-visible while the app's
+// WebView keeps playback alive. Otherwise Android can hide video frames while audio
+// continues when fullscreen is active.
+private class FullscreenContainer(context: Context) : FrameLayout(context) {
+  override fun dispatchWindowVisibilityChanged(visibility: Int) {
+    super.dispatchWindowVisibilityChanged(VISIBLE)
+  }
+}
+
 class VideoWebView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
   WebView(context, attrs, defStyleAttr) {
 
@@ -573,8 +582,13 @@ class VideoAppView(context: Context, appContext: AppContext) : ExpoView(context,
             return
           }
           val window = activity.window
-          (window.decorView as FrameLayout).addView(
+          val container = FullscreenContainer(activity)
+          container.addView(
             view,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+          )
+          (window.decorView as FrameLayout).addView(
+            container,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
           )
           webView.evaluateJavascript(FULLSCREEN_MODE_JS) { result ->
@@ -605,7 +619,8 @@ class VideoAppView(context: Context, appContext: AppContext) : ExpoView(context,
             return
           }
           val window = activity.window
-          (window.decorView as FrameLayout).removeView(customView)
+          val fullscreenContainer = customView?.parent as? ViewGroup
+          (fullscreenContainer?.parent as? ViewGroup)?.removeView(fullscreenContainer)
           // The brightness override belongs to the fullscreen player only.
           window.attributes = window.attributes.apply {
             screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE

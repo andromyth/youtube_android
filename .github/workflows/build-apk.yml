@@ -64,7 +64,21 @@ jobs:
       - name: Set up Gradle and restore build cache
         uses: gradle/actions/setup-gradle@v4
 
+      # PRs validate the exact React Native release bundle task first. The
+      # full native APK build runs on main (or manual dispatch), avoiding a
+      # 15+ minute native build for a JavaScript/Metro dependency failure.
+      - name: Validate release JavaScript bundle
+        if: github.event_name == 'pull_request'
+        working-directory: android
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:createBundleFossReleaseJsAndAssets --no-daemon --stacktrace --build-cache --parallel \
+            -PreactNativeArchitectures=armeabi-v7a
+
       - name: Build release APK
+        if: github.event_name != 'pull_request'
         working-directory: android
         env:
           NODE_OPTIONS: --max-old-space-size=4096
@@ -80,6 +94,7 @@ jobs:
           find android/app/build -name "*.apk" -type f -exec ls -lh {} \;
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: tv-apk
