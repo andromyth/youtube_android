@@ -14,11 +14,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
-
-      - name: install
-        run: |
-          bun link
-          bun install --frozen-lockfile
+      - name: install dependencies
+        run: bun install --no-progress
 
       - name: test
         run: bun test
@@ -42,8 +39,7 @@ jobs:
 
       - name: install and prebuild
         run: |
-          bun link
-          bun install --frozen-lockfile
+          bun install --no-progress
           bun expo prebuild -p android --clean --no-install
 
       - name: test Android module
